@@ -1,5 +1,5 @@
 """
-homework_solver.py — Uses Claude AI to complete homework assignments in Hebrew.
+homework_solver.py — Uses Google Gemini AI (free tier) to complete homework in Hebrew.
 
 Handles three assignment types:
   - essay        (ASSIGNMENT workType)         → generates .docx
@@ -13,7 +13,7 @@ import tempfile
 import time
 from typing import Optional
 
-import anthropic
+import google.generativeai as genai
 from docx import Document
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
@@ -84,46 +84,43 @@ def build_multiple_choice_prompt(title: str, description: str, choices: list) ->
     return "\n\n".join(parts)
 
 
-# ── Claude API call ────────────────────────────────────────────────────────
+# ── Gemini API call ────────────────────────────────────────────────────────
 
-def call_claude(
+def call_gemini(
     user_prompt: str,
     system_prompt: str = SYSTEM_PROMPT,
     model: str = None,
     max_tokens: int = None,
 ) -> str:
-    """Call Claude and return the response text."""
+    """Call Google Gemini (free tier) and return the response text."""
     if model is None:
-        model = os.environ.get("CLAUDE_MODEL", "claude-opus-4-5")
+        model = os.environ.get("GEMINI_MODEL", "gemini-1.5-flash")
     if max_tokens is None:
-        max_tokens = int(os.environ.get("CLAUDE_MAX_TOKENS", "2048"))
+        max_tokens = int(os.environ.get("GEMINI_MAX_TOKENS", "2048"))
 
-    client = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
+    genai.configure(api_key=os.environ["GEMINI_API_KEY"])
+    gemini_model = genai.GenerativeModel(
+        model_name=model,
+        system_instruction=system_prompt,
+    )
+    generation_config = genai.types.GenerationConfig(max_output_tokens=max_tokens)
 
     for attempt in range(2):
         try:
-            message = client.messages.create(
-                model=model,
-                max_tokens=max_tokens,
-                system=system_prompt,
-                messages=[{"role": "user", "content": user_prompt}],
+            response = gemini_model.generate_content(
+                user_prompt,
+                generation_config=generation_config,
             )
-            text = message.content[0].text.strip()
-            logger.debug(
-                "Claude response: %d input tokens, %d output tokens.",
-                message.usage.input_tokens,
-                message.usage.output_tokens,
-            )
+            text = response.text.strip()
+            logger.debug("Gemini response received (%d chars).", len(text))
             return text
-        except anthropic.RateLimitError:
-            if attempt == 0:
-                logger.warning("Claude rate limit hit. Waiting 60s before retry...")
+        except Exception as e:
+            if "429" in str(e) and attempt == 0:
+                logger.warning("Gemini rate limit hit. Waiting 60s before retry...")
                 time.sleep(60)
             else:
+                logger.error("Gemini API error: %s", e)
                 raise
-        except anthropic.APIError as e:
-            logger.error("Claude API error: %s", e)
-            raise
 
     return ""
 
@@ -223,19 +220,19 @@ def solve_assignment(coursework: dict, materials_text: str = "") -> dict:
 
     if assignment_type == "essay":
         prompt = build_essay_prompt(title, description, materials_text)
-        answer = call_claude(prompt, max_tokens=int(os.environ.get("CLAUDE_MAX_TOKENS", "2048")))
+        answer = call_gemini(prompt, max_tokens=int(os.environ.get("GEMINI_MAX_TOKENS", "2048")))
         result["answer_text"] = answer
         result["docx_path"] = generate_docx(title, answer)
 
     elif assignment_type == "short_answer":
         prompt = build_short_answer_prompt(title, description)
-        answer = call_claude(prompt, max_tokens=512)
+        answer = call_gemini(prompt, max_tokens=512)
         result["answer_text"] = answer
 
     elif assignment_type == "multiple_choice":
         choices = extract_multiple_choice_options(coursework)
         prompt = build_multiple_choice_prompt(title, description, choices)
-        raw_answer = call_claude(prompt, max_tokens=64)
+        raw_answer = call_gemini(prompt, max_tokens=64)
         matched = match_choice_to_answer(raw_answer, choices) if choices else raw_answer
         result["answer_text"] = raw_answer
         result["choice_answer"] = matched

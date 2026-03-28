@@ -152,10 +152,11 @@ def main() -> None:
     logger.info("=== Google Classroom Homework Agent starting ===")
 
     # Validate required env vars
-    if not os.environ.get("ANTHROPIC_API_KEY"):
+    if not os.environ.get("GEMINI_API_KEY"):
         logger.error(
-            "ANTHROPIC_API_KEY is not set. "
-            "Copy .env.example to .env and fill in your API key."
+            "GEMINI_API_KEY is not set. "
+            "Get a free key at https://aistudio.google.com/app/apikey "
+            "then copy .env.example to .env and fill it in."
         )
         sys.exit(1)
 
