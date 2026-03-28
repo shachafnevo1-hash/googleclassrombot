@@ -59,7 +59,11 @@ def get_credentials(
         else:
             logger.info("No valid token found — starting OAuth2 consent flow...")
             flow = InstalledAppFlow.from_client_secrets_file(credentials_file, scopes)
-            creds = flow.run_local_server(port=0)
+            print("\n" + "="*60)
+            print("ACTION REQUIRED: Open the following URL in your browser")
+            print("="*60)
+            creds = flow.run_local_server(port=8080, open_browser=False)
+            print("="*60 + "\n")
 
         with open(token_file, "w") as f:
             f.write(creds.to_json())
