@@ -13,7 +13,8 @@ import tempfile
 import time
 from typing import Optional
 
-import google.generativeai as genai
+from google import genai
+from google.genai import types as genai_types
 from docx import Document
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
@@ -98,18 +99,18 @@ def call_gemini(
     if max_tokens is None:
         max_tokens = int(os.environ.get("GEMINI_MAX_TOKENS", "2048"))
 
-    genai.configure(api_key=os.environ["GEMINI_API_KEY"])
-    gemini_model = genai.GenerativeModel(
-        model_name=model,
+    client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
+    config = genai_types.GenerateContentConfig(
         system_instruction=system_prompt,
+        max_output_tokens=max_tokens,
     )
-    generation_config = genai.types.GenerationConfig(max_output_tokens=max_tokens)
 
     for attempt in range(2):
         try:
-            response = gemini_model.generate_content(
-                user_prompt,
-                generation_config=generation_config,
+            response = client.models.generate_content(
+                model=model,
+                contents=user_prompt,
+                config=config,
             )
             text = response.text.strip()
             logger.debug("Gemini response received (%d chars).", len(text))
