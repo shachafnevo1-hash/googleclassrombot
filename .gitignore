@@ -9,3 +9,4 @@ __pycache__/
 venv/
 *.docx
 product-posters/out/*-preview.png
+product-posters/out/*.f32
