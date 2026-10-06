@@ -78,19 +78,18 @@ uniform sampler2D uHdr, uBloom, uS0, uS1, uS2, uS3;
 uniform float uBloomK, uStreakK, uExposure, uGrain;
 uniform vec2 uRes;
 
-vec3 pbrNeutral(vec3 color) {
-  const float startCompression = 0.8 - 0.04;
-  const float desaturation = 0.15;
-  float x = min(color.r, min(color.g, color.b));
-  float offset = x < 0.08 ? x - 6.25 * x * x : 0.04;
-  color -= offset;
-  float peak = max(color.r, max(color.g, color.b));
-  if (peak < startCompression) return color;
-  const float d = 1.0 - startCompression;
-  float newPeak = 1.0 - d * d / (peak + d - startCompression);
-  color *= newPeak / peak;
-  float g = 1.0 - 1.0 / (desaturation * (peak - newPeak) + 1.0);
-  return mix(color, vec3(newPeak), g);
+// Hue-preserving shoulder (the PBR Neutral curve without its toe offset and
+// with a later knee): everything below 0.86 passes through untouched, so the
+// product photo keeps its exact colours; only true highlights roll off.
+vec3 tonemap(vec3 c) {
+  const float k = 0.86;
+  float peak = max(c.r, max(c.g, c.b));
+  if (peak <= k) return c;
+  const float d = 1.0 - k;
+  float newPeak = 1.0 - d * d / (peak + d - k);
+  c *= newPeak / peak;
+  float g = 1.0 - 1.0 / (0.15 * (peak - newPeak) + 1.0);
+  return mix(c, vec3(newPeak), g);
 }
 vec3 toSrgb(vec3 c) {
   c = clamp(c, 0.0, 1.0);
@@ -104,7 +103,7 @@ void main() {
   vec3 c = vec3(texture(uHdr, vUv - d * ca).r, texture(uHdr, vUv).g, texture(uHdr, vUv + d * ca).b);
   c += texture(uBloom, vUv).rgb * uBloomK;
   c += (texture(uS0, vUv).rgb + texture(uS1, vUv).rgb + texture(uS2, vUv).rgb + texture(uS3, vUv).rgb) * uStreakK;
-  c = pbrNeutral(c * uExposure);
+  c = tonemap(c * uExposure);
   // gentle vignette towards a deep lilac
   float v = smoothstep(0.95, 0.25, length(d * vec2(1.0, 0.86)));
   c = mix(c * vec3(0.82, 0.78, 0.95), c, 0.72 + 0.28 * v);

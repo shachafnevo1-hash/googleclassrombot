@@ -32,7 +32,28 @@ function edt(grid, w, h) {
   return grid;
 }
 
-export function buildTextSdf(text, font, worldWidth, fontPx = 520, pad = 90) {
+// Separable Gaussian blur; a lightly blurred distance field is still a valid
+// (slightly rounded) field, and it removes the EDT's stair-steps on diagonals.
+function blur(src, w, h, sigma) {
+  const r = Math.ceil(sigma * 3), k = [];
+  let sum = 0;
+  for (let i = -r; i <= r; i++) { const v = Math.exp(-(i * i) / (2 * sigma * sigma)); k.push(v); sum += v; }
+  for (let i = 0; i < k.length; i++) k[i] /= sum;
+  const tmp = new Float32Array(src.length), out = new Float32Array(src.length);
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    let acc = 0;
+    for (let i = -r; i <= r; i++) acc += k[i + r] * src[y * w + Math.min(w - 1, Math.max(0, x + i))];
+    tmp[y * w + x] = acc;
+  }
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    let acc = 0;
+    for (let i = -r; i <= r; i++) acc += k[i + r] * tmp[Math.min(h - 1, Math.max(0, y + i)) * w + x];
+    out[y * w + x] = acc;
+  }
+  return out;
+}
+
+export function buildTextSdf(text, font, worldWidth, fontPx = 520, pad = 90, smooth = 0) {
   const c = document.createElement('canvas');
   const g = c.getContext('2d');
   g.font = font(fontPx);
@@ -63,7 +84,7 @@ export function buildTextSdf(text, font, worldWidth, fontPx = 520, pad = 90) {
     sdf[i] = (s + (0.5 - a) * 0.5) * scale;
   }
   return {
-    data: sdf, width: W, height: H,
+    data: smooth > 0 ? blur(sdf, W, H, smooth) : sdf, width: W, height: H,
     // text-local rectangle covered by the texture (origin = centre of the ink box, y up)
     rect: [-(pad + tw / 2) * scale, -(pad + th / 2) * scale, W * scale, H * scale],
     half: [(tw / 2) * scale, (th / 2) * scale],

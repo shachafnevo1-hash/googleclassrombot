@@ -16,6 +16,19 @@ const TYPES = {
 };
 
 const server = http.createServer((req, res) => {
+  const url = new URL(req.url, 'http://x');
+  if (req.method === 'POST' && url.pathname === '/save') {
+    // lets a page persist large binary results (e.g. a float HDR buffer) into out/
+    const name = path.basename(url.searchParams.get('name') || 'upload.bin');
+    const chunks = [];
+    req.on('data', (c) => chunks.push(c));
+    req.on('end', () => {
+      fs.writeFileSync(path.join(ROOT, 'out', name), Buffer.concat(chunks));
+      res.writeHead(200);
+      res.end('ok');
+    });
+    return;
+  }
   const file = path.join(ROOT, decodeURIComponent(new URL(req.url, 'http://x').pathname));
   if (!file.startsWith(ROOT) || !fs.existsSync(file) || fs.statSync(file).isDirectory()) {
     res.writeHead(404);

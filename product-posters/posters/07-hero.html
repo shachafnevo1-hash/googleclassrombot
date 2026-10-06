@@ -58,9 +58,16 @@ const q = new URLSearchParams(location.search);
 try {
   await fonts(['900 520px Unbounded', '700 64px Fredoka', '500 23px Heebo', '600 14px Orbitron', '500 17px Heebo']);
   if (q.get('overlay') === '0') document.getElementById('ov').classList.add('off');
+  const post = {};
+  for (const k of ['bloomK', 'threshold', 'knee', 'streakK', 'streakThreshold', 'streakAtten', 'exposure', 'grain']) {
+    if (q.has(k)) post[k] = Number(q.get(k));
+  }
   await renderHero(document.getElementById('gl'), {
     spp: Number(q.get('spp') || 16),
     scale: Number(q.get('scale') || 1),
+    saveHdr: q.get('saveHdr'),
+    loadHdr: q.get('loadHdr'),
+    post,
   });
 } catch (e) {
   console.log('ERROR', e.message);
