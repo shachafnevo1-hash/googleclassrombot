@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="he">
+<head>
+<meta charset="utf-8">
+<title>07 · Hero (Y2K, ray-marched)</title>
+<link rel="stylesheet" href="../assets/fonts/fonts.css">
+<style>
+  html, body { margin: 0; background: #E9D8FF; }
+  .poster { position: relative; width: 1080px; height: 1350px; overflow: hidden; }
+  #gl { position: absolute; inset: 0; width: 1080px; height: 1350px; }
+  .ov { position: absolute; inset: 0; }
+  .ov.off { display: none; }
+
+  .tag { position: absolute; top: 34px; color: rgba(255, 255, 255, .92); text-shadow: 0 1px 12px rgba(70, 30, 160, .45); }
+  .tag.l { left: 44px; font: 600 14px/1 Orbitron; letter-spacing: .32em; direction: ltr; }
+  .tag.r { right: 44px; font: 500 17px/1 Heebo; letter-spacing: .02em; direction: rtl; }
+
+  .card {
+    position: absolute; left: 86px; right: 86px; bottom: 40px; padding: 21px 36px 23px; box-sizing: border-box;
+    border-radius: 40px; direction: rtl; text-align: center;
+    background: linear-gradient(135deg, rgba(255, 255, 255, .34), rgba(255, 255, 255, .10) 55%, rgba(255, 220, 245, .18));
+    border: 1.5px solid rgba(255, 255, 255, .6);
+    box-shadow: 0 24px 60px rgba(60, 20, 140, .28), inset 0 1px 0 rgba(255, 255, 255, .75), inset 0 -18px 40px rgba(255, 255, 255, .08);
+    backdrop-filter: blur(22px) saturate(1.5);
+    -webkit-backdrop-filter: blur(22px) saturate(1.5);
+  }
+  .card::before {
+    content: ''; position: absolute; left: 22px; right: 22px; top: 6px; height: 44%; border-radius: 34px 34px 60px 60px;
+    background: linear-gradient(rgba(255, 255, 255, .32), rgba(255, 255, 255, 0)); pointer-events: none;
+  }
+  .card h1 {
+    position: relative; margin: 0; font: 700 58px/1.05 Fredoka; color: #fff; letter-spacing: -0.005em;
+    text-shadow: 0 2px 0 rgba(90, 50, 190, .35), 0 6px 26px rgba(80, 30, 170, .45);
+  }
+  .card h1 em { font-style: normal; background: linear-gradient(90deg, #FFE9A8, #FFB3E6 50%, #B9E9FF); -webkit-background-clip: text; background-clip: text; color: transparent;
+    text-shadow: none; filter: drop-shadow(0 2px 0 rgba(90, 50, 190, .35)) drop-shadow(0 6px 22px rgba(80, 30, 170, .4)); }
+  .card p { position: relative; margin: 9px 0 0; font: 500 22px/1.4 Heebo; color: rgba(255, 255, 255, .95);
+    text-shadow: 0 1px 10px rgba(70, 30, 160, .5); }
+</style>
+</head>
+<body>
+<div class="poster">
+  <canvas id="gl"></canvas>
+  <div class="ov" id="ov">
+    <div class="tag l">✦ NFC REVIEW STAND</div>
+    <div class="tag r">מעמד ביקורות חכם לעסק ✦</div>
+    <div class="card">
+      <h1>טאפ אחד — <em>ושימו דירוג!</em></h1>
+      <p>הלקוח מצמיד את הטלפון, ודף הביקורת שלכם בגוגל נפתח מיד</p>
+    </div>
+  </div>
+</div>
+<script type="module">
+import { fonts, done } from './common.js';
+import { renderHero } from './hero/hero.js';
+
+const q = new URLSearchParams(location.search);
+try {
+  await fonts(['900 520px Unbounded', '700 64px Fredoka', '500 23px Heebo', '600 14px Orbitron', '500 17px Heebo']);
+  if (q.get('overlay') === '0') document.getElementById('ov').classList.add('off');
+  await renderHero(document.getElementById('gl'), {
+    spp: Number(q.get('spp') || 16),
+    scale: Number(q.get('scale') || 1),
+  });
+} catch (e) {
+  console.log('ERROR', e.message);
+}
+done();
+</script>
+</body>
+</html>

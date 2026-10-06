@@ -8,6 +8,8 @@ const path = require('path');
 const ROOT = __dirname;
 const W = 1080, H = 1350;
 const DPR = Number(process.env.DPR || 2);
+const QUERY = process.env.QUERY ? `?${process.env.QUERY}` : '';
+const TIMEOUT = Number(process.env.TIMEOUT || 60000);
 const TYPES = {
   '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css',
   '.png': 'image/png', '.ttf': 'font/ttf', '.svg': 'image/svg+xml',
@@ -25,7 +27,7 @@ const server = http.createServer((req, res) => {
 
 server.listen(0, '127.0.0.1', async () => {
   const { port } = server.address();
-  const browser = await chromium.launch();
+  const browser = await chromium.launch({ args: ['--disable-gpu-watchdog', '--enable-unsafe-swiftshader'] });
   const page = await browser.newPage({ viewport: { width: W, height: H }, deviceScaleFactor: DPR });
   page.on('console', (m) => console.log('[page]', m.text()));
   page.on('pageerror', (e) => console.log('[pageerror]', e.message));
@@ -38,9 +40,9 @@ server.listen(0, '127.0.0.1', async () => {
 
   fs.mkdirSync(path.join(ROOT, 'out'), { recursive: true });
   for (const f of posters) {
-    await page.goto(`http://127.0.0.1:${port}/posters/${f}`);
-    await page.waitForFunction('window.__ready === true', null, { timeout: 60000 });
-    const out = path.join(ROOT, 'out', f.replace('.html', '.png'));
+    await page.goto(`http://127.0.0.1:${port}/posters/${f}${QUERY}`);
+    await page.waitForFunction('window.__ready === true', null, { timeout: TIMEOUT, polling: 1000 });
+    const out = path.join(ROOT, 'out', f.replace('.html', `${process.env.SUFFIX || ''}.png`));
     await page.screenshot({ path: out, clip: { x: 0, y: 0, width: W, height: H } });
     console.log('rendered', path.relative(ROOT, out));
   }
