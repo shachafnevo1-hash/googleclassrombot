@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="he">
+<head>
+<meta charset="utf-8">
+<title>05 · Pop art</title>
+<link rel="stylesheet" href="../assets/fonts/fonts.css">
+<style>
+  html, body { margin: 0; background: #111; }
+  .poster { position: relative; width: 1080px; height: 1350px; overflow: hidden; background: #111; }
+  .abs { position: absolute; }
+  #art { position: absolute; left: 0; top: 0; }
+
+  .caption { background: #FFF04A; border: 5px solid #111; box-shadow: 7px 7px 0 #111; padding: 10px 18px 12px;
+    font: 600 29px/1.15 Fredoka; color: #111; direction: rtl; text-align: right; }
+  svg.overlay { position: absolute; left: 0; top: 0; overflow: visible; }
+</style>
+</head>
+<body>
+<div class="poster">
+  <canvas id="art"></canvas>
+  <div class="abs caption" style="right:44px; top:42px; transform: rotate(-1.5deg)">בינתיים, בעסק שלך...</div>
+  <div class="abs caption" style="right:44px; top:706px; transform: rotate(1deg)">טאפ אחד...</div>
+  <svg class="overlay" id="overlay" width="1080" height="1350" viewBox="0 0 1080 1350"></svg>
+</div>
+
+<script type="module">
+import { rng, loadImage, fonts, hex, done, PRODUCT } from './common.js';
+
+await fonts(['96px Bangers', '700 34px Fredoka', '600 29px Fredoka']);
+const DPR = window.devicePixelRatio || 1;
+const PAD = 22, GAP = 18;
+const PW = (1080 - PAD * 2 - GAP) / 2, PH = (1350 - PAD * 2 - GAP) / 2;
+
+const art = document.getElementById('art');
+art.width = 1080 * DPR; art.height = 1350 * DPR;
+art.style.width = '1080px'; art.style.height = '1350px';
+const actx = art.getContext('2d');
+actx.fillStyle = '#111';
+actx.fillRect(0, 0, art.width, art.height);
+
+const photo = await loadImage(PRODUCT);
+
+// Warhol-style colourways: one per silkscreen panel.
+const PANELS = [
+  { col: 0, row: 0, cx: 0.44, top: 132, bg: '#FF5BAA', dot: '#FF2E8B', navy: '#1C3BFF', light: '#FFF36B', tone: '#FF9F1C', acc: '#FF2E2E', star: '#FFFFFF', wave: '#00D1FF' },
+  { col: 1, row: 0, cx: 0.5, top: 142, bg: '#22C7FF', dot: '#0096E0', navy: '#E8112D', light: '#FFFFFF', tone: '#FF7AC6', acc: '#FFE600', star: '#FFE600', wave: '#FFE600' },
+  { col: 0, row: 1, cx: 0.52, top: 168, bg: '#FFE11A', dot: '#FFAE00', navy: '#7B2CFF', light: '#7CFFB2', tone: '#00B860', acc: '#FF3C00', star: '#FF3C00', wave: '#FF5BAA' },
+  { col: 1, row: 1, cx: 0.56, top: 132, bg: '#FF5A1F', dot: '#E23A00', navy: '#00A6A6', light: '#FFD1E8', tone: '#FF5AA8', acc: '#FFE600', star: '#FFE600', wave: '#1C3BFF' },
+];
+
+const NONE = 0, INK = 1, NAVY = 2, WAVE = 3, ACC = 4, STAR = 5, LIGHT = 6;
+
+// Analyse the product photo once at the size it is printed in each panel.
+const PROD_H = Math.round(468 * DPR);
+const PROD_W = Math.round((PROD_H * photo.width) / photo.height);
+const R = Math.round(4 * DPR);             // ink outline thickness
+const tmp = new OffscreenCanvas(PROD_W, PROD_H);
+const tctx = tmp.getContext('2d');
+tctx.imageSmoothingQuality = 'high';
+tctx.drawImage(photo, 0, 0, PROD_W, PROD_H);
+const src = tctx.getImageData(0, 0, PROD_W, PROD_H).data;
+const N = PROD_W * PROD_H;
+const L = new Float32Array(N), cls = new Uint8Array(N);
+for (let i = 0; i < N; i++) {
+  const r = src[i * 4], g = src[i * 4 + 1], b = src[i * 4 + 2], a = src[i * 4 + 3] / 255;
+  const lum = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+  const mx = Math.max(r, g, b), mn = Math.min(r, g, b), sat = mx ? (mx - mn) / mx : 0;
+  L[i] = lum;
+  if (a < 0.5) cls[i] = NONE;
+  else if (lum < 0.24 && sat < 0.45) cls[i] = INK;
+  else if (b > r + 35 && b > g + 15 && lum < 0.36) cls[i] = NAVY;
+  else if (b > r + 60 && lum >= 0.36) cls[i] = WAVE;
+  else if (r > 190 && g > 140 && b < 110) cls[i] = STAR;
+  else if (sat > 0.42 && mx > 110) cls[i] = ACC;
+  else cls[i] = LIGHT;
+}
+// Comic ink lines: Sobel edges on luminance, thickened by one pixel.
+const edge = new Uint8Array(N);
+for (let y = 1; y < PROD_H - 1; y++) for (let x = 1; x < PROD_W - 1; x++) {
+  const i = y * PROD_W + x;
+  if (!cls[i]) continue;
+  const p = (dx, dy) => L[i + dy * PROD_W + dx];
+  const gx = p(1, -1) + 2 * p(1, 0) + p(1, 1) - p(-1, -1) - 2 * p(-1, 0) - p(-1, 1);
+  const gy = p(-1, 1) + 2 * p(0, 1) + p(1, 1) - p(-1, -1) - 2 * p(0, -1) - p(1, -1);
+  if (Math.hypot(gx, gy) > 1.25) edge[i] = 1;
+}
+const ink = new Uint8Array(N);
+for (let y = 1; y < PROD_H - 1; y++) for (let x = 1; x < PROD_W - 1; x++) {
+  const i = y * PROD_W + x;
+  if (cls[i] === INK || edge[i] || edge[i - 1] || edge[i - PROD_W]) ink[i] = 1;
+}
+// Silhouette dilated by R for the thick outline + hard shadow (separable max).
+const MW = PROD_W + 2 * R, MH = PROD_H + 2 * R;
+const solid = new Uint8Array(MW * MH), tmpRow = new Uint8Array(MW * MH), dil = new Uint8Array(MW * MH);
+for (let y = 0; y < PROD_H; y++) for (let x = 0; x < PROD_W; x++) solid[(y + R) * MW + x + R] = cls[y * PROD_W + x] ? 1 : 0;
+for (let y = 0; y < MH; y++) for (let x = 0; x < MW; x++) {
+  let v = 0;
+  for (let k = -R; k <= R && !v; k++) { const xx = x + k; if (xx >= 0 && xx < MW && solid[y * MW + xx]) v = 1; }
+  tmpRow[y * MW + x] = v;
+}
+for (let y = 0; y < MH; y++) for (let x = 0; x < MW; x++) {
+  let v = 0;
+  for (let k = -R; k <= R && !v; k++) { const yy = y + k; if (yy >= 0 && yy < MH && tmpRow[yy * MW + x]) v = 1; }
+  dil[y * MW + x] = v;
+}
+
+function renderPanel(P) {
+  const w = Math.round(PW * DPR), h = Math.round(PH * DPR);
+  const c = new OffscreenCanvas(w, h), g = c.getContext('2d');
+  g.fillStyle = P.bg;
+  g.fillRect(0, 0, w, h);
+
+  // Ben-Day dots on a 45-degree screen, growing towards the bottom corner.
+  const cell = 15 * DPR, ext = Math.hypot(w, h) / 2 + cell, k = Math.SQRT1_2;
+  g.fillStyle = P.dot;
+  for (let u = -ext; u <= ext; u += cell) for (let v = -ext; v <= ext; v += cell) {
+    const X = w / 2 + (u - v) * k, Y = h / 2 + (u + v) * k;
+    if (X < -cell || Y < -cell || X > w + cell || Y > h + cell) continue;
+    const t = Math.min(1, Math.max(0, (X / w + Y / h) / 2));
+    g.beginPath();
+    g.arc(X, Y, cell * (0.1 + 0.34 * t), 0, Math.PI * 2);
+    g.fill();
+  }
+
+  const id = g.getImageData(0, 0, w, h), out = id.data;
+  const put = (x, y, rgb) => {
+    if (x < 0 || y < 0 || x >= w || y >= h) return;
+    const o = (y * w + x) * 4;
+    out[o] = rgb[0]; out[o + 1] = rgb[1]; out[o + 2] = rgb[2]; out[o + 3] = 255;
+  };
+  const K = [17, 17, 17];
+  const C = Object.fromEntries(['navy', 'light', 'tone', 'acc', 'star', 'wave'].map((n) => [n, hex(P[n])]));
+  const ox = Math.round(P.cx * w - PROD_W / 2), oy = Math.round(P.top * DPR);
+  const SH = Math.round(13 * DPR), MIS = Math.round(3 * DPR);
+
+  // 1. hard comic shadow, 2. black outline
+  for (let y = 0; y < MH; y++) for (let x = 0; x < MW; x++) if (dil[y * MW + x]) put(ox - R + x + SH, oy - R + y + SH, K);
+  for (let y = 0; y < MH; y++) for (let x = 0; x < MW; x++) if (dil[y * MW + x]) put(ox - R + x, oy - R + y, K);
+
+  // 3. colour layer, slightly off-register like a silkscreen print
+  const hc = 7.5 * DPR, ang = (15 * Math.PI) / 180, ca = Math.cos(ang), sa = Math.sin(ang);
+  for (let y = 0; y < PROD_H; y++) for (let x = 0; x < PROD_W; x++) {
+    const i = y * PROD_W + x, t = cls[i];
+    if (!t) continue;
+    const X = ox + x - MIS, Y = oy + y - MIS;
+    let col;
+    if (t === NAVY || t === INK) col = C.navy;
+    else if (t === WAVE) col = C.wave;
+    else if (t === ACC) col = C.acc;
+    else if (t === STAR) col = C.star;
+    else {
+      // halftone the whites: dot size follows the photo's real shading
+      const shade = Math.min(1, Math.max(0, (0.96 - L[i]) / 0.5));
+      if (shade > 0.85) col = C.tone;
+      else {
+        const u = X * ca + Y * sa, v = -X * sa + Y * ca;
+        const du = (((u % hc) + hc) % hc) - hc / 2, dv = (((v % hc) + hc) % hc) - hc / 2;
+        col = Math.hypot(du, dv) < hc * (0.16 + 0.42 * shade) ? C.tone : C.light;
+      }
+    }
+    put(X, Y, col);
+  }
+  // 4. key (black) plate on top
+  for (let y = 0; y < PROD_H; y++) for (let x = 0; x < PROD_W; x++) if (ink[y * PROD_W + x]) put(ox + x, oy + y, K);
+
+  g.putImageData(id, 0, 0);
+  return c;
+}
+
+for (const P of PANELS) {
+  const c = renderPanel(P);
+  actx.drawImage(c, Math.round((PAD + P.col * (PW + GAP)) * DPR), Math.round((PAD + P.row * (PH + GAP)) * DPR));
+}
+
+// ---------- overlay: burst, sound effect, speech bubble ----------
+const rand = rng(5);
+function burst(cx, cy, rOut, rIn, n, sx, rot) {
+  const pts = [];
+  for (let i = 0; i < n * 2; i++) {
+    const a = (i / (n * 2)) * Math.PI * 2 + rot;
+    const r = i % 2 ? rIn * (0.92 + rand() * 0.12) : rOut * (0.86 + rand() * 0.22);
+    pts.push(`${(cx + Math.cos(a) * r * sx).toFixed(1)},${(cy + Math.sin(a) * r).toFixed(1)}`);
+  }
+  return pts.join(' ');
+}
+const ov = document.getElementById('overlay');
+ov.innerHTML = `
+  <polygon points="${burst(552, 687, 236, 150, 18, 1.22, 0.1)}" fill="#111"/>
+  <polygon points="${burst(540, 675, 236, 150, 18, 1.22, 0.1)}" fill="#E8112D" stroke="#111" stroke-width="7" stroke-linejoin="miter"/>
+  <polygon points="${burst(540, 675, 186, 128, 16, 1.2, 0.3)}" fill="#FFE600" stroke="#111" stroke-width="6"/>
+  <g font-family="Bangers" text-anchor="middle">
+    <text x="551" y="712" font-size="190" fill="#111" transform="rotate(-8 540 675)">TAP!</text>
+    <text x="540" y="701" font-size="190" fill="#E8112D" stroke="#111" stroke-width="7" paint-order="stroke" transform="rotate(-8 540 675)">TAP!</text>
+  </g>
+  <g transform="rotate(-8 540 675)">
+    <rect x="454" y="722" width="172" height="58" fill="#111"/>
+    <text x="540" y="767" font-family="Fredoka" font-weight="700" font-size="44" fill="#FFE600" text-anchor="middle" direction="rtl">אחד!</text>
+  </g>
+
+  <g transform="rotate(-12 420 104)" font-family="Fredoka" font-weight="700" font-size="96" text-anchor="middle" direction="rtl">
+    <text x="428" y="142" fill="#111">ביפ!</text>
+    <text x="420" y="134" fill="#FFE600" stroke="#111" stroke-width="8" paint-order="stroke">ביפ!</text>
+  </g>
+
+  <g>
+    <path d="M 168 838 Q 184 888 224 930 Q 212 884 228 842 Z" fill="#fff" stroke="#111" stroke-width="6" stroke-linejoin="round"/>
+    <ellipse cx="192" cy="774" rx="152" ry="80" fill="#fff" stroke="#111" stroke-width="6"/>
+    <path d="M 174 836 Q 190 878 216 912 Q 208 880 220 842 Z" fill="#fff"/>
+    <g font-family="Fredoka" font-weight="700" text-anchor="middle" direction="rtl" fill="#111">
+      <text x="192" y="762" font-size="38">וואו!</text>
+      <text x="192" y="806" font-size="32">עוד 5 כוכבים!</text>
+    </g>
+  </g>`;
+
+done();
+</script>
+</body>
+</html>

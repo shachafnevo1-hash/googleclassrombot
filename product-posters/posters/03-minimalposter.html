@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="he">
+<head>
+<meta charset="utf-8">
+<title>03 · Minimal poster</title>
+<link rel="stylesheet" href="../assets/fonts/fonts.css">
+<style>
+  :root { --bg: #F3F1EC; --ink: #1B1B1B; --mute: #8B877F; --sun: #F2B90F; }
+  html, body { margin: 0; background: var(--bg); }
+  .poster { position: relative; width: 1080px; height: 1350px; overflow: hidden; background: var(--bg); color: var(--ink); }
+  .abs { position: absolute; }
+
+  .sun { left: 236px; top: 296px; width: 608px; height: 608px; border-radius: 50%;
+    background: radial-gradient(circle at 40% 30%, #F8CC40 0%, var(--sun) 52%, #EAA905 100%); }
+  .floor { left: 0; right: 0; top: 872px; bottom: 0; background: linear-gradient(#E7E3DB, #EFECE6 55%, #F1EEE8); }
+  .horizon { left: 0; right: 0; top: 872px; height: 1px; background: rgba(27, 27, 27, .16); }
+  .contact { border-radius: 50%; background: rgba(20, 18, 14, var(--o)); filter: blur(var(--b)); }
+
+  #product, .shadow { left: 50%; height: 640px; transform: translateX(-50%); }
+  #product { top: 406px; }
+  .shadow { top: 406px; filter: brightness(0) blur(var(--b)); opacity: var(--o); transform-origin: 50% 100%; }
+
+  .head { right: 72px; top: 92px; direction: rtl; text-align: right; }
+  .head h1 { margin: 0; font: 200 96px/1 Heebo; letter-spacing: -0.02em; }
+  .head h1 span { font-family: 'Space Grotesk'; font-weight: 300; letter-spacing: -0.04em; }
+  .head p { margin: 22px 0 0; font: 300 25px/1.5 Heebo; color: var(--mute); }
+
+  .idx { left: 72px; top: 104px; direction: ltr; font: 400 14px/1.6 'Space Grotesk'; letter-spacing: .18em; color: var(--mute); text-transform: uppercase; }
+
+  .foot { left: 72px; right: 72px; bottom: 74px; display: flex; justify-content: space-between; align-items: flex-end; direction: rtl;
+    font: 400 19px/1.5 Heebo; color: var(--ink); }
+  .foot small { display: block; font: 400 12px/1.8 'Space Grotesk'; letter-spacing: .2em; color: var(--mute); direction: ltr; text-align: inherit; }
+  .foot .stars { font-size: 17px; letter-spacing: .5em; color: var(--sun); direction: ltr; }
+
+  .grain { inset: 0; pointer-events: none; mix-blend-mode: multiply; opacity: .35; }
+</style>
+</head>
+<body>
+<div class="poster">
+  <div class="abs sun"></div>
+  <div class="abs floor"></div>
+  <div class="abs horizon"></div>
+
+  <img class="abs shadow" id="s1" alt="" style="--b:16px; --o:.13">
+  <div class="abs contact" style="--o:.16; --b:22px; left:300px; top:1000px; width:500px; height:70px; transform:rotate(-2.6deg)"></div>
+  <div class="abs contact" style="--o:.42; --b:6px; left:332px; top:1026px; width:430px; height:20px; transform:rotate(-2.6deg)"></div>
+  <img class="abs" id="product" alt="">
+
+  <div class="abs idx">Nº 03<br>Minimal</div>
+
+  <div class="abs head">
+    <h1><span>Tap</span> אחד.</h1>
+    <p>הלקוח מצמיד את הטלפון —<br>ודף הביקורת שלכם בגוגל נפתח.</p>
+  </div>
+
+  <div class="abs foot">
+    <div style="text-align:right"><small>01</small>מעמד ביקורות NFC</div>
+    <div style="text-align:center"><div class="stars">★★★★★</div></div>
+    <div style="text-align:left"><small>02</small>בלי אפליקציה. בלי הקלדה.</div>
+  </div>
+
+  <svg class="abs grain" viewBox="0 0 1080 1350" preserveAspectRatio="none">
+    <filter id="g"><feTurbulence type="fractalNoise" baseFrequency=".85" numOctaves="3" seed="11"/>
+      <feColorMatrix values="0 0 0 0 .5  0 0 0 0 .48  0 0 0 0 .45  0 0 0 -1.7 1.1"/></filter>
+    <rect width="100%" height="100%" filter="url(#g)"/>
+  </svg>
+</div>
+
+<script type="module">
+import { loadImage, fonts, done, PRODUCT } from './common.js';
+await fonts(['200 96px Heebo', '300 25px Heebo', '400 19px Heebo', "300 96px 'Space Grotesk'", "400 14px 'Space Grotesk'"]);
+const img = await loadImage(PRODUCT);
+for (const id of ['product', 's1']) document.getElementById(id).src = img.src;
+// Cast shadow: the silhouette mirrored onto the floor, sheared away from the
+// sun and faded out with distance.
+const s1 = document.getElementById('s1');
+s1.style.transform = 'translateX(-50%) scaleY(-.2) skewX(40deg)';
+s1.style.webkitMaskImage = s1.style.maskImage = 'linear-gradient(to top, rgba(0,0,0,.05), #000 85%)';
+done();
+</script>
+</body>
+</html>

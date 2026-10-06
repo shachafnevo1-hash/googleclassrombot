@@ -1,0 +1,367 @@
+<!doctype html>
+<html lang="he">
+<head>
+<meta charset="utf-8">
+<title>01 · 8-bit game</title>
+<link rel="stylesheet" href="../assets/fonts/fonts.css">
+<style>
+  html, body { margin: 0; background: #000; }
+  .poster { position: relative; width: 1080px; height: 1350px; overflow: hidden; }
+  #scene { position: absolute; inset: 0; width: 1080px; height: 1350px; image-rendering: pixelated; }
+
+  .hud {
+    position: absolute; top: 30px; left: 36px; right: 36px; direction: ltr;
+    display: flex; justify-content: space-between; align-items: flex-start;
+    font: 21px/1.6 'Press Start 2P'; color: #FFF1E8; text-shadow: 3px 3px 0 #000;
+  }
+  .hud .v { color: #FFEC27; }
+  .hud .stars { display: flex; align-items: center; gap: 12px; margin-top: 8px; }
+  .hud canvas { image-rendering: pixelated; filter: drop-shadow(3px 3px 0 #000); }
+
+
+  .plus {
+    position: absolute; font: 20px 'Press Start 2P'; color: #FFF1E8; direction: ltr;
+    text-shadow: 3px 0 0 #000, -3px 0 0 #000, 0 3px 0 #000, 0 -3px 0 #000, 3px 3px 0 #000;
+  }
+
+  .dialog {
+    position: absolute; left: 30px; right: 30px; top: 1146px; height: 174px; box-sizing: border-box;
+    background: #0B1030; direction: rtl; padding: 22px 42px 0 42px;
+    box-shadow: 0 0 0 6px #FFF1E8, 0 0 0 12px #000, inset 0 0 0 6px #0B1030, inset 0 0 0 12px #29ADFF;
+    clip-path: polygon(0 6px, 6px 6px, 6px 0, calc(100% - 6px) 0, calc(100% - 6px) 6px, 100% 6px,
+      100% calc(100% - 6px), calc(100% - 6px) calc(100% - 6px), calc(100% - 6px) 100%, 6px 100%,
+      6px calc(100% - 6px), 0 calc(100% - 6px));
+    font: 48px/66px 'Unifont'; color: #FFF1E8;
+  }
+  .dialog-wrap { position: absolute; inset: 0; }
+  .dialog b { color: #FFEC27; font-weight: normal; }
+  .tag {
+    position: absolute; top: 1112px; right: 72px; z-index: 2; direction: rtl;
+    background: #FF004D; color: #FFF1E8; font: 32px/1 'Unifont'; padding: 12px 22px 10px;
+    box-shadow: 0 0 0 6px #000, 6px 6px 0 6px #000;
+  }
+  .cursor {
+    position: absolute; left: 66px; top: 1270px; width: 24px; height: 18px; background: #FFEC27;
+    clip-path: polygon(0 0, 100% 0, 100% 33%, 75% 33%, 75% 66%, 50% 66%, 50% 100%, 50% 100%, 50% 66%,
+      25% 66%, 25% 33%, 0 33%);
+  }
+  .scan {
+    position: absolute; inset: 0; pointer-events: none;
+    background: repeating-linear-gradient(to bottom, transparent 0 4px, rgba(0, 0, 0, .13) 4px 6px);
+  }
+  .vignette {
+    position: absolute; inset: 0; pointer-events: none;
+    background: radial-gradient(ellipse 75% 70% at 50% 50%, transparent 62%, rgba(0, 0, 20, .42) 100%);
+  }
+</style>
+</head>
+<body>
+<div class="poster">
+  <canvas id="scene"></canvas>
+
+  <div class="hud">
+    <div>SCORE<br><span class="v">004950</span></div>
+    <div class="stars"><canvas id="hudstar"></canvas><span>×<span class="v">05</span></span></div>
+    <div>WORLD<br><span class="v">NFC-1</span></div>
+    <div>TIME<br><span class="v">001</span></div>
+  </div>
+
+
+  <div id="plus"></div>
+
+  <div class="tag">★ טיפ ★</div>
+  <div class="dialog">
+    מצמידים את הטלפון למעמד...<br>
+    ודף הביקורת בגוגל <b>נפתח מיד!</b>
+  </div>
+  <div class="cursor"></div>
+
+  <div class="scan"></div>
+  <div class="vignette"></div>
+</div>
+
+<script type="module">
+import { rng, loadImage, fonts, hex, bayer, done, PRODUCT } from './common.js';
+
+await fonts(["900 24px Rubik", "48px Unifont", "21px 'Press Start 2P'"]);
+
+const GW = 180, GH = 225, P = 6;      // low-res game grid, 6 CSS px per pixel
+const GROUND = 188;                    // first grass row
+const rand = rng(8);
+
+const cv = document.getElementById('scene');
+cv.width = GW; cv.height = GH;
+const ctx = cv.getContext('2d');
+const frame = ctx.createImageData(GW, GH);
+const buf = frame.data;
+
+const cache = new Map();
+const rgb = (c) => cache.get(c) || (cache.set(c, hex(c)), cache.get(c));
+function px(x, y, c) {
+  x = Math.round(x); y = Math.round(y);
+  if (x < 0 || y < 0 || x >= GW || y >= GH) return;
+  const [r, g, b] = rgb(c), i = (y * GW + x) * 4;
+  buf[i] = r; buf[i + 1] = g; buf[i + 2] = b; buf[i + 3] = 255;
+}
+function rect(x, y, w, h, c) { for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) px(x + i, y + j, c); }
+
+// Sprite from rows of characters; '.' is transparent. Optional outline colour.
+function sprite(rows, map, ox, oy, outline) {
+  const h = rows.length, w = rows[0].length;
+  const on = (x, y) => x >= 0 && y >= 0 && x < w && y < h && rows[y][x] !== '.';
+  if (outline) {
+    for (let y = -1; y <= h; y++) for (let x = -1; x <= w; x++) {
+      if (on(x, y)) continue;
+      if (on(x - 1, y) || on(x + 1, y) || on(x, y - 1) || on(x, y + 1)) px(ox + x, oy + y, outline);
+    }
+  }
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (on(x, y)) px(ox + x, oy + y, map[rows[y][x]]);
+}
+
+const STAR = [
+  '....w....',
+  '....y....',
+  '...yyy...',
+  'yyyyyyyyy',
+  '.yyyyyyo.',
+  '..yyyyo..',
+  '..yyyoo..',
+  '.yyo.ooo.',
+  '.yo...oo.',
+];
+const STAR_MAP = { y: '#FFEC27', o: '#FFA300', w: '#FFFFFF' };
+
+// ---------- sky: banded gradient with Bayer-dithered seams ----------
+const SKY = ['#0B3C9E', '#1453C2', '#1D6BDB', '#2A86EC', '#3DA2F7', '#62BEFC', '#93D6FF', '#C4EBFF'];
+for (let y = 0; y < GROUND; y++) {
+  const b = (y / (GROUND - 30)) * (SKY.length - 1);
+  const lo = Math.min(Math.floor(b), SKY.length - 1), hi = Math.min(lo + 1, SKY.length - 1);
+  const f = Math.max(0, (b - lo - 0.62) / 0.38);
+  for (let x = 0; x < GW; x++) px(x, y, f > bayer(x, y) ? SKY[hi] : SKY[lo]);
+}
+
+// twinkles high in the sky
+for (let i = 0; i < 26; i++) {
+  const x = Math.floor(rand() * GW), y = 22 + Math.floor(rand() * 40);
+  px(x, y, rand() > 0.5 ? '#FFFFFF' : '#93D6FF');
+}
+
+// ---------- clouds ----------
+function cloud(cx, cy, s) {
+  const blobs = [[0, 0, 7], [-8, 2, 5], [8, 2, 5], [-4, -3, 5], [5, -4, 6], [13, 3, 3], [-13, 3, 3]];
+  for (let y = -12; y <= 6; y++) for (let x = -20; x <= 20; x++) {
+    let inside = false;
+    for (const [bx, by, r] of blobs) if ((x - bx * s) ** 2 + (y - by * s) ** 2 <= (r * s) ** 2) inside = true;
+    if (!inside || y > 5 * s) continue;
+    const shade = y > 2.4 * s;
+    px(cx + x, cy + y, shade ? '#B9E2FF' : '#FFFFFF');
+  }
+}
+cloud(26, 104, 1); cloud(158, 92, 0.9); cloud(150, 150, 0.7);
+
+// ---------- far mountains ----------
+for (let x = 0; x < GW; x++) {
+  const top = Math.round(140 + 11 * Math.sin(x * 0.043 + 0.6) + 6 * Math.sin(x * 0.117 + 2.1));
+  for (let y = top; y < GROUND; y++) px(x, y, y === top ? '#9CC4F2' : (y < top + 3 && bayer(x, y) < 0.5 ? '#9CC4F2' : '#5B8FD8'));
+}
+
+// ---------- power-up light rays behind the product (3-step dither) ----------
+const RX = 100, RY = 136, RR = 104;
+const checker = (x, y) => (x + y) % 2 === 0;
+const quarter = (x, y) => x % 2 === 0 && y % 2 === 0;
+for (let y = 0; y < GROUND; y++) for (let x = 0; x < GW; x++) {
+  const dx = x - RX, dy = y - RY, d = Math.hypot(dx, dy);
+  if (d > RR) continue;
+  const a = Math.atan2(dy, dx) + Math.PI + 0.09;
+  if (Math.floor(a / ((Math.PI * 2) / 16)) % 2) continue;
+  const k = (1 - d / RR) * Math.min(1, Math.max(0, (y - 66) / 28));
+  if (k > 0.62 || (k > 0.36 && checker(x, y)) || (k > 0.14 && quarter(x, y))) px(x, y, '#FFF4B8');
+}
+
+// ---------- near hills ----------
+for (let x = 0; x < GW; x++) {
+  const top = Math.round(166 + 7 * Math.sin(x * 0.062 + 0.3) + 5 * Math.sin(x * 0.15 + 1.3));
+  for (let y = top; y < GROUND; y++) {
+    let c = '#00A84A';
+    if (y === top) c = '#3BE36A';
+    else if ((x * 7 + y * 3) % 23 === 0 || (bayer(x, y) < 0.12 && y > top + 4)) c = '#00873E';
+    px(x, y, c);
+  }
+}
+
+// ---------- ground ----------
+for (let x = 0; x < GW; x++) {
+  px(x, GROUND, '#3BE36A'); px(x, GROUND + 1, '#00C853'); px(x, GROUND + 2, '#00873E');
+  px(x, GROUND + 3, '#5C2A12');
+  if (rand() < 0.35) px(x, GROUND - 1, '#3BE36A');
+  if (rand() < 0.12) { px(x, GROUND - 1, '#3BE36A'); px(x, GROUND - 2, '#3BE36A'); }
+  for (let y = GROUND + 4; y < GH; y++) {
+    const depth = (y - GROUND) / (GH - GROUND);
+    px(x, y, bayer(x, y) < depth * 0.55 ? '#8A4524' : '#B5602F');
+  }
+}
+for (let i = 0; i < 70; i++) {
+  const x = Math.floor(rand() * GW), y = GROUND + 6 + Math.floor(rand() * (GH - GROUND - 7));
+  px(x, y, '#E09A5C'); px(x + 1, y, '#E09A5C'); px(x, y + 1, '#6B3317'); px(x + 1, y + 1, '#6B3317');
+}
+
+// ---------- product sprite (real photo -> 8-bit sprite) ----------
+const PALETTE = ['#000000', '#0D1B4A', '#1A3A8F', '#2B5BD7', '#29ADFF', '#FFFFFF', '#E6E6EE', '#B4B8C8',
+  '#6E7387', '#FFEC27', '#FFA300', '#FF004D', '#00B543', '#3A7BF0'].map(hex);
+function nearest(r, g, b) {
+  let best = 0, bd = Infinity;
+  PALETTE.forEach(([pr, pg, pb], i) => {
+    const d = 2 * (r - pr) ** 2 + 4 * (g - pg) ** 2 + 3 * (b - pb) ** 2;
+    if (d < bd) { bd = d; best = i; }
+  });
+  return PALETTE[best];
+}
+
+const photo = await loadImage(PRODUCT);
+const SW = 70, SH = Math.round((SW * photo.height) / photo.width);
+const off = new OffscreenCanvas(SW, SH);
+const octx = off.getContext('2d');
+octx.imageSmoothingQuality = 'high';
+octx.drawImage(photo, 0, 0, SW, SH);
+const sd = octx.getImageData(0, 0, SW, SH).data;
+const SX = 65, SY = GROUND + 2 - SH;
+
+// soft shadow on the grass
+for (let x = SX - 6; x < SX + SW + 8; x++) for (let y = GROUND; y < GROUND + 3; y++) {
+  const t = Math.abs((x - (SX + SW / 2)) / (SW / 2 + 7));
+  if (t < 1 && bayer(x, y) < (1 - t) * 0.9) px(x, y, '#005A2A');
+}
+
+const solid = (x, y) => x >= 0 && y >= 0 && x < SW && y < SH && sd[(y * SW + x) * 4 + 3] > 110;
+for (let y = -1; y <= SH; y++) for (let x = -1; x <= SW; x++) {
+  if (solid(x, y)) {
+    const i = (y * SW + x) * 4;
+    const [r, g, b] = nearest(sd[i], sd[i + 1], sd[i + 2]);
+    px(SX + x, SY + y, `#${((1 << 24) | (r << 16) | (g << 8) | b).toString(16).slice(1)}`);
+  } else if (solid(x - 1, y) || solid(x + 1, y) || solid(x, y - 1) || solid(x, y + 1)) {
+    px(SX + x, SY + y, '#000000');
+  }
+}
+
+// sparkles around the item
+function twinkle(x, y, big) {
+  px(x, y, '#FFFFFF');
+  for (const s of big ? [1, 2] : [1]) { px(x + s, y, '#FFF4B8'); px(x - s, y, '#FFF4B8'); px(x, y + s, '#FFF4B8'); px(x, y - s, '#FFF4B8'); }
+}
+twinkle(56, 92, true); twinkle(144, 132, false); twinkle(60, 168, false); twinkle(146, 172, true);
+
+// ---------- the player: a happy phone mid-jump ----------
+function phone(ox, oy) {
+  const K = '#000000';
+  rect(ox + 1, oy, 14, 26, K); rect(ox, oy + 1, 16, 24, K);
+  rect(ox + 1, oy + 1, 14, 24, '#4A4E69');
+  rect(ox + 2, oy + 2, 1, 21, '#9A9EB8');
+  rect(ox + 6, oy + 2, 4, 1, K);
+  rect(ox + 3, oy + 4, 10, 18, '#29ADFF');
+  rect(ox + 3, oy + 19, 10, 3, '#1E8BE0');
+  rect(ox + 3, oy + 4, 10, 1, '#7FD0FF');
+  // face
+  rect(ox + 4, oy + 8, 2, 3, '#FFFFFF'); rect(ox + 10, oy + 8, 2, 3, '#FFFFFF');
+  rect(ox + 5, oy + 9, 1, 2, K); rect(ox + 11, oy + 9, 1, 2, K);
+  px(ox + 4, oy + 12, '#FF77A8'); px(ox + 12, oy + 12, '#FF77A8');
+  px(ox + 6, oy + 12, K); px(ox + 10, oy + 12, K); rect(ox + 7, oy + 13, 3, 1, K); px(ox + 8, oy + 14, '#FF004D');
+  // tiny star on the screen
+  sprite(['.y.', 'yyy', 'y.y'], { y: '#FFEC27' }, ox + 7, oy + 16);
+  rect(ox + 7, oy + 23, 2, 1, '#9A9EB8');
+  // arms: one reaching for the stand, one cheering
+  px(ox + 16, oy + 13, K); px(ox + 17, oy + 12, K); px(ox + 18, oy + 11, K);
+  sprite(['ww', 'ww'], { w: '#FFFFFF' }, ox + 19, oy + 9, K);
+  px(ox - 1, oy + 11, K); px(ox - 2, oy + 10, K); px(ox - 3, oy + 9, K);
+  sprite(['ww', 'ww'], { w: '#FFFFFF' }, ox - 5, oy + 6, K);
+  // tucked legs + red sneakers
+  rect(ox + 4, oy + 26, 2, 2, K); rect(ox + 10, oy + 26, 2, 2, K);
+  sprite(['rrr', 'rrr'], { r: '#FF004D' }, ox + 2, oy + 28, K);
+  sprite(['rrr', 'rrr'], { r: '#FF004D' }, ox + 10, oy + 28, K);
+}
+const PX = 18, PY = 112;
+// jump trail
+for (let t = 0; t <= 1; t += 0.11) {
+  const x = 4 + t * (PX - 2), y = GROUND - 3 - Math.sin(t * Math.PI * 0.5) * (GROUND - 3 - (PY + 34));
+  px(x, y, '#FFFFFF');
+}
+sprite(['.ww.', 'wwww', '.ww.'], { w: '#E8F4FF' }, 1, GROUND - 4);
+phone(PX, PY);
+
+// NFC waves from the phone to the stand
+function arc(cx, cy, r, c) {
+  for (let a = -0.85; a <= 0.85; a += 0.01) {
+    px(cx + Math.cos(a) * r, cy + Math.sin(a) * r, c);
+    px(cx + Math.cos(a) * (r + 1), cy + Math.sin(a) * (r + 1), c);
+  }
+}
+arc(PX + 24, PY + 11, 5, '#FFFFFF'); arc(PX + 24, PY + 11, 10, '#FFEC27'); arc(PX + 24, PY + 11, 15, '#FFFFFF');
+
+// ---------- stars popping out of the stand ----------
+const STARS = [[142, 112], [154, 96], [163, 120], [149, 140], [166, 146]];
+for (const [x, y] of STARS) sprite(STAR, STAR_MAP, x, y, '#000000');
+
+
+// ---------- title: real font rasterised into the pixel grid ----------
+function pixelLine(text, size, cx, baseline, fill) {
+  const c = new OffscreenCanvas(GW, GH), g = c.getContext('2d');
+  g.font = `900 ${size}px Rubik`;
+  g.letterSpacing = '1px';
+  g.direction = 'rtl';
+  g.textAlign = 'center';
+  g.fillStyle = '#fff';
+  g.fillText(text, cx, baseline);
+  const d = g.getImageData(0, 0, GW, GH).data;
+  const on = (x, y) => x >= 0 && y >= 0 && x < GW && y < GH && d[(y * GW + x) * 4 + 3] > 118;
+  let top = GH, bot = 0;
+  for (let y = 0; y < GH; y++) for (let x = 0; x < GW; x++) if (on(x, y)) { top = Math.min(top, y); bot = Math.max(bot, y); }
+  // extruded drop shadow, 1px outline, then banded fill like an arcade logo
+  for (let y = 0; y < GH; y++) for (let x = 0; x < GW; x++) {
+    if (on(x, y)) for (const [ex, ey] of [[1, 1], [1, 2], [2, 2], [0, 2], [2, 3], [1, 3]]) px(x + ex, y + ey, '#2B0F3A');
+  }
+  for (let y = 0; y < GH; y++) for (let x = 0; x < GW; x++) {
+    if (on(x, y)) continue;
+    for (let j = -1; j <= 1; j++) for (let i = -1; i <= 1; i++) if (on(x + i, y + j)) { px(x, y, '#0B1030'); i = j = 2; }
+  }
+  for (let y = 0; y < GH; y++) for (let x = 0; x < GW; x++) {
+    if (!on(x, y)) continue;
+    const t = (y - top) / Math.max(1, bot - top);
+    px(x, y, t < 0.2 ? fill[0] : t < 0.6 ? fill[1] : fill[2]);
+  }
+}
+pixelLine('Tap אחד', 27, GW / 2, 50, ['#FFFBD0', '#FFEC27', '#FFA300']);
+pixelLine('ושימו דירוג!', 22, GW / 2, 76, ['#FFFFFF', '#E6F4FF', '#8FD0FF']);
+
+ctx.putImageData(frame, 0, 0);
+
+// HUD star icon
+const hs = document.getElementById('hudstar');
+hs.width = 11; hs.height = 11; hs.style.width = '44px'; hs.style.height = '44px';
+{
+  const hctx = hs.getContext('2d'), id = hctx.createImageData(11, 11);
+  const on = (x, y) => x >= 0 && y >= 0 && x < 9 && y < 9 && STAR[y][x] !== '.';
+  for (let y = -1; y <= 9; y++) for (let x = -1; x <= 9; x++) {
+    let c = null;
+    if (on(x, y)) c = hex(STAR_MAP[STAR[y][x]]);
+    else if (on(x - 1, y) || on(x + 1, y) || on(x, y - 1) || on(x, y + 1)) c = [0, 0, 0];
+    if (!c) continue;
+    const i = ((y + 1) * 11 + (x + 1)) * 4;
+    id.data.set([...c, 255], i);
+  }
+  hctx.putImageData(id, 0, 0);
+}
+
+// "+1" labels beside some stars
+const plus = document.getElementById('plus');
+for (const [x, y] of [STARS[0], STARS[1], STARS[3]]) {
+  const el = document.createElement('div');
+  el.className = 'plus';
+  el.textContent = '+1';
+  el.style.left = `${(x + 10) * P}px`;
+  el.style.top = `${(y - 4) * P}px`;
+  plus.appendChild(el);
+}
+
+done();
+</script>
+</body>
+</html>

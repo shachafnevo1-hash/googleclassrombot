@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="he">
+<head>
+<meta charset="utf-8">
+<title>02 · Typography poster</title>
+<link rel="stylesheet" href="../assets/fonts/fonts.css">
+<style>
+  :root { --paper: #EEEAE1; --ink: #121212; --blue: #1D3C9A; --hot: #FF4D1C; }
+  html, body { margin: 0; background: var(--paper); }
+  .poster { position: relative; width: 1080px; height: 1350px; overflow: hidden; background: var(--paper); color: var(--ink); }
+  .abs { position: absolute; }
+
+  /* top meta row */
+  .meta { top: 34px; left: 44px; right: 44px; display: flex; justify-content: space-between; direction: ltr;
+    font: 500 15px/1.35 'Space Mono'; letter-spacing: .04em; text-transform: uppercase; }
+  .meta .he { font-family: Heebo; font-weight: 500; font-size: 17px; direction: rtl; text-align: right; letter-spacing: 0; }
+  .rule { left: 44px; right: 44px; height: 2px; background: var(--ink); }
+
+  /* the hero word */
+  .tap { left: 0; top: 76px; direction: ltr; white-space: nowrap; font: 400 100px/0.74 'Archivo Black'; letter-spacing: -0.035em;
+    color: var(--ink); transform-origin: 0 0; }
+  .tap.front span + span { visibility: hidden; }
+
+  /* product */
+  #product { left: 92px; top: 372px; height: 800px; filter: drop-shadow(26px 30px 0 rgba(18, 18, 18, .10)); }
+
+  /* hebrew stack on the right */
+  .stack { right: 44px; top: 560px; direction: rtl; text-align: right; }
+  .stack div { font: 700 210px/0.74 Karantina; letter-spacing: -0.005em; }
+  .stack .o { color: transparent; -webkit-text-stroke: 3px var(--ink); }
+  .stack .hot { color: var(--hot); }
+  .stack .sm { font: 300 34px/1.1 'Frank Ruhl Libre'; margin-top: 18px; letter-spacing: 0; }
+  .stack .sm i { font-style: normal; font-weight: 700; }
+
+  .vert { font: 400 15px 'Space Mono'; letter-spacing: .32em; text-transform: uppercase; direction: ltr;
+    transform: rotate(-90deg); transform-origin: 0 0; white-space: nowrap; }
+
+  .num { font: 400 15px/1 'Space Mono'; direction: ltr; }
+
+  /* steps footer */
+  .steps { left: 44px; right: 44px; top: 1214px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 28px; direction: rtl; }
+  .steps div { border-top: 2px solid var(--ink); padding-top: 14px; }
+  .steps b { display: block; font: 400 14px/1 'Space Mono'; direction: ltr; text-align: right; margin-bottom: 10px; }
+  .steps span { font: 700 30px/1.05 Heebo; letter-spacing: -0.01em; }
+
+  /* rotating badge */
+  #badge { width: 196px; height: 196px; }
+
+  .grain { inset: 0; pointer-events: none; mix-blend-mode: multiply; opacity: .55; }
+  .marks { inset: 0; pointer-events: none; }
+</style>
+</head>
+<body>
+<div class="poster">
+  <div class="abs meta">
+    <div>NFC Review Stand<br>Type Specimen — Nº 02</div>
+    <div style="text-align:center">Tap → Rate<br>★★★★★ 5.0</div>
+    <div class="he">מעמד ביקורות חכם<br>לכל עסק</div>
+  </div>
+  <div class="abs rule" style="top:84px"></div>
+
+  <div class="abs tap" id="tapBack"><span>T</span><span>A</span><span>P</span></div>
+  <img class="abs" id="product" alt="">
+  <div class="abs tap front" id="tapFront"><span>T</span><span>A</span><span>P</span></div>
+
+  <div class="abs stack">
+    <div class="o">אחד.</div>
+    <div>ושימו</div>
+    <div class="hot">דירוג!</div>
+    <div class="sm">פשוט מצמידים את הטלפון. <i>זהו.</i></div>
+  </div>
+
+  <div class="abs vert" style="left:24px; top:1180px">Near Field Communication · 13.56 MHz</div>
+
+  <svg class="abs" id="badge" viewBox="0 0 200 200"></svg>
+
+  <div class="abs steps">
+    <div><b>01</b><span>מצמידים</span></div>
+    <div><b>02</b><span>דף הביקורת נפתח</span></div>
+    <div><b>03</b><span>★★★★★</span></div>
+  </div>
+
+  <svg class="abs marks" viewBox="0 0 1080 1350" id="marks"></svg>
+  <svg class="abs grain" viewBox="0 0 1080 1350" preserveAspectRatio="none">
+    <filter id="g"><feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="3" seed="4"/>
+      <feColorMatrix values="0 0 0 0 .5  0 0 0 0 .45  0 0 0 0 .4  0 0 0 -1.6 1.15"/></filter>
+    <rect width="100%" height="100%" filter="url(#g)"/>
+  </svg>
+</div>
+
+<script type="module">
+import { loadImage, fonts, done, PRODUCT } from './common.js';
+
+await fonts(["100px 'Archivo Black'", '700 210px Karantina', "300 34px 'Frank Ruhl Libre'", '700 30px Heebo',
+  "15px 'Space Mono'", '500 17px Heebo']);
+const product = await loadImage(PRODUCT);
+document.getElementById('product').src = product.src;
+
+// Fit "TAP" edge to edge (44px margins) by measuring the real glyph ink.
+function fit(el, left, right, top) {
+  el.style.transform = 'none';
+  const r = el.getBoundingClientRect();
+  const s = (1080 - left - right) / r.width;
+  el.style.transform = `scale(${s})`;
+  el.style.left = `${left}px`;
+  el.style.top = `${top}px`;
+}
+for (const id of ['tapBack', 'tapFront']) fit(document.getElementById(id), 34, 34, 104);
+
+// The front copy only keeps its "T", so the stand slides *between* the
+// letters: tucked behind the T's stem, standing in front of the A.
+
+// Park the badge under the bowl of the P, overlapping its stem.
+const P = document.querySelectorAll('#tapBack span')[2].getBoundingClientRect();
+const badgeEl = document.getElementById('badge');
+badgeEl.style.left = `${1080 - 30 - 196}px`;
+badgeEl.style.top = `${P.top + P.height * 0.66}px`;
+
+// Circular text badge.
+const badge = document.getElementById('badge');
+const txt = 'בלי אפליקציה • בלי הקלדה • בלי חיפוש • ';
+badge.innerHTML = `
+  <defs><path id="c" d="M100,100 m-74,0 a74,74 0 1,1 148,0 a74,74 0 1,1 -148,0"/></defs>
+  <circle cx="100" cy="100" r="99" fill="#FF4D1C"/>
+  <text font-family="Heebo" font-weight="800" font-size="18" fill="#121212">
+    <textPath href="#c" textLength="${2 * Math.PI * 74 - 6}" lengthAdjust="spacing">${txt}</textPath></text>
+  <text x="100" y="123" text-anchor="middle" font-family="Archivo Black" font-size="58" fill="#121212">5★</text>`;
+badge.style.transform = 'rotate(-14deg)';
+
+// Print registration marks in the corners.
+const m = document.getElementById('marks');
+const mark = (x, y) => `<g stroke="#121212" stroke-width="1.2" fill="none"><circle cx="${x}" cy="${y}" r="7"/>
+  <line x1="${x - 13}" y1="${y}" x2="${x + 13}" y2="${y}"/><line x1="${x}" y1="${y - 13}" x2="${x}" y2="${y + 13}"/></g>`;
+m.innerHTML = mark(1050, 1318) + mark(30, 18);
+
+done();
+</script>
+</body>
+</html>

@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="he">
+<head>
+<meta charset="utf-8">
+<title>06 · Y2K</title>
+<link rel="stylesheet" href="../assets/fonts/fonts.css">
+<style>
+  html, body { margin: 0; background: #C3B1FF; }
+  .poster {
+    position: relative; width: 1080px; height: 1350px; overflow: hidden;
+    background:
+      radial-gradient(50% 40% at 10% 18%, #FFD3F4 0%, transparent 70%),
+      radial-gradient(55% 45% at 92% 28%, #BCE8FF 0%, transparent 70%),
+      radial-gradient(60% 50% at 15% 92%, #C4F6FF 0%, transparent 70%),
+      radial-gradient(60% 50% at 88% 88%, #FFC2E6 0%, transparent 70%),
+      linear-gradient(168deg, #BFA9FF 0%, #F6C3EE 46%, #A6DEFF 100%);
+  }
+  .abs { position: absolute; }
+  .layer { position: absolute; inset: 0; pointer-events: none; }
+  .iris { background: conic-gradient(from 30deg at 50% 56%, rgba(255, 0, 200, .10), rgba(0, 210, 255, .10), rgba(255, 240, 0, .08),
+    rgba(120, 255, 200, .08), rgba(255, 0, 200, .10)); mix-blend-mode: soft-light; }
+  .rays { background: repeating-conic-gradient(from 0deg at 50% 57%, rgba(255, 255, 255, .55) 0deg 3deg, transparent 3deg 12deg);
+    -webkit-mask-image: radial-gradient(circle at 50% 57%, #000 0%, rgba(0, 0, 0, .55) 28%, transparent 62%); }
+  .halo { background: radial-gradient(circle at 50% 57%, rgba(255, 255, 255, .95) 0%, rgba(255, 255, 255, .55) 16%, rgba(255, 255, 255, 0) 42%); }
+
+  #product { left: 50%; top: 492px; height: 540px; transform: translateX(-50%);
+    filter: drop-shadow(0 0 18px rgba(255, 255, 255, .9)) drop-shadow(0 0 60px rgba(176, 120, 255, .65)); }
+
+  .win { left: 44px; top: 1074px; width: 430px; box-sizing: border-box; background: rgba(255, 255, 255, .78);
+    border: 2px solid #fff; outline: 2px solid #6D5BC9; box-shadow: 8px 8px 0 rgba(109, 91, 201, .45), 0 20px 40px rgba(80, 40, 160, .25);
+    backdrop-filter: blur(6px); }
+  .win .bar { height: 38px; display: flex; align-items: center; justify-content: space-between; padding: 0 6px 0 12px;
+    background: linear-gradient(90deg, #FF7FD5, #A88BFF 55%, #6FC8FF); color: #fff; font: 32px/1 Unifont; direction: ltr;
+    text-shadow: 2px 2px 0 rgba(80, 40, 160, .55); }
+  .win .bar span:last-child { display: flex; gap: 5px; }
+  .win .bar i { width: 24px; height: 24px; background: linear-gradient(#fff, #E3DBFF); border: 2px solid #6D5BC9; box-sizing: border-box;
+    font: 16px/20px Unifont; font-style: normal; color: #6D5BC9; text-align: center; text-shadow: none; }
+  .win .body { padding: 16px 20px 18px; direction: rtl; font: 32px/1.35 Unifont; color: #3A2C7A; }
+  .prog { margin: 12px 0 10px; height: 30px; border: 2px solid #6D5BC9; background: #fff; padding: 3px; box-sizing: border-box;
+    display: flex; gap: 3px; direction: ltr; }
+  .prog b { flex: 1; background: linear-gradient(#9EF0FF, #3FA9FF); }
+  .prog b:nth-child(odd) { background: linear-gradient(#FFB3EC, #FF5FC8); }
+  .win .row { display: flex; justify-content: space-between; direction: rtl; font: 32px/1 Unifont; }
+  .win .row .st { color: #FF4FB8; letter-spacing: 2px; }
+
+  .aqua { right: 46px; top: 1146px; width: 476px; height: 104px; border-radius: 60px; box-sizing: border-box;
+    background: linear-gradient(180deg, #8FE3FF 0%, #3BA7FF 48%, #1662E8 52%, #3D9BFF 100%);
+    border: 3px solid #0E4DB8; box-shadow: 0 14px 26px rgba(20, 60, 170, .38), inset 0 -8px 16px rgba(160, 240, 255, .7);
+    display: flex; align-items: center; justify-content: center; direction: rtl;
+    font: 700 46px/1 Fredoka; color: #fff; text-shadow: 0 2px 0 #0E4DB8, 0 0 14px rgba(255, 255, 255, .6); }
+  .aqua::before { content: ''; position: absolute; left: 26px; right: 26px; top: 7px; height: 42%; border-radius: 40px;
+    background: linear-gradient(rgba(255, 255, 255, .95), rgba(255, 255, 255, .15)); }
+  .aqua span { position: relative; }
+
+  .tag { font: 700 17px/1 Orbitron; letter-spacing: .28em; color: #fff; direction: ltr; text-shadow: 0 0 10px rgba(130, 80, 255, .8); }
+</style>
+</head>
+<body>
+<div class="poster">
+  <div class="layer iris"></div>
+  <svg class="layer" id="grid" viewBox="0 0 1080 1350"></svg>
+  <div class="layer rays"></div>
+  <div class="layer halo"></div>
+
+  <svg class="layer" id="back" viewBox="0 0 1080 1350"></svg>
+  <img class="abs" id="product" alt="">
+  <svg class="layer" id="front" viewBox="0 0 1080 1350"></svg>
+
+  <div class="abs tag" style="left:46px; top:40px">✦ Y2K EDITION</div>
+  <div class="abs tag" style="right:46px; top:40px">NFC · 2000 ✦</div>
+
+  <div class="abs win">
+    <div class="bar"><span>review.exe</span><span><i>_</i><i>□</i><i>x</i></span></div>
+    <div class="body">
+      פותח דף ביקורת...
+      <div class="prog"><b></b><b></b><b></b><b></b><b></b><b></b><b></b><b></b><b></b><b></b><b></b><b></b></div>
+      <div class="row"><span>טאפ אחד. זהו.</span><span class="st">★★★★★</span></div>
+    </div>
+  </div>
+
+  <div class="abs aqua"><span>שימו דירוג ★</span></div>
+
+  <svg class="layer" id="top" viewBox="0 0 1080 1350"></svg>
+</div>
+
+<script type="module">
+import { rng, loadImage, fonts, done, PRODUCT } from './common.js';
+await fonts(['900 230px Unbounded', '84px "Rubik Bubbles"', '32px Unifont', '700 46px Fredoka', '700 17px Orbitron']);
+document.getElementById('product').src = (await loadImage(PRODUCT)).src;
+const rand = rng(2000);
+
+// ---------- perspective "cyber floor" ----------
+{
+  const VX = 540, VY = 905, lines = [];
+  for (let i = -14; i <= 14; i++) lines.push(`<line x1="${VX}" y1="${VY}" x2="${VX + i * 150}" y2="1350"/>`);
+  for (let k = 1; k <= 12; k++) {
+    const y = VY + Math.pow(k / 12, 2.1) * (1350 - VY);
+    lines.push(`<line x1="0" y1="${y.toFixed(1)}" x2="1080" y2="${y.toFixed(1)}"/>`);
+  }
+  document.getElementById('grid').innerHTML = `
+    <defs><linearGradient id="gf" x1="0" y1="${VY}" x2="0" y2="1350" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset=".35" stop-color="#fff" stop-opacity=".55"/>
+      <stop offset="1" stop-color="#fff" stop-opacity=".8"/></linearGradient></defs>
+    <g stroke="url(#gf)" stroke-width="2">${lines.join('')}</g>`;
+}
+
+// ---------- shared SVG defs: chrome, holo, glows ----------
+const DEFS = `
+  <linearGradient id="chrome" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0" stop-color="#FFFFFF"/><stop offset=".22" stop-color="#E4E6FF"/><stop offset=".44" stop-color="#9196C4"/>
+    <stop offset=".5" stop-color="#2D2B57"/><stop offset=".545" stop-color="#7B76B5"/><stop offset=".66" stop-color="#F1EEFF"/>
+    <stop offset=".82" stop-color="#FFFFFF"/><stop offset="1" stop-color="#BDB6EA"/>
+  </linearGradient>
+  <linearGradient id="chromeH" x1="0" y1="0" x2="1" y2="0">
+    <stop offset="0" stop-color="#8D88C9"/><stop offset=".3" stop-color="#FFFFFF"/><stop offset=".55" stop-color="#C9C6F0"/>
+    <stop offset=".75" stop-color="#FFFFFF"/><stop offset="1" stop-color="#7E78BE"/>
+  </linearGradient>
+  <linearGradient id="holo" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#FF8AD8"/><stop offset=".3" stop-color="#C6A2FF"/><stop offset=".55" stop-color="#7FE0FF"/>
+    <stop offset=".78" stop-color="#B8FFD9"/><stop offset="1" stop-color="#FF9FE0"/>
+  </linearGradient>
+  <linearGradient id="gloss" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0" stop-color="#fff" stop-opacity=".95"/><stop offset=".5" stop-color="#fff" stop-opacity=".2"/>
+    <stop offset=".51" stop-color="#fff" stop-opacity="0"/>
+  </linearGradient>
+  <filter id="spec" x="-10%" y="-20%" width="120%" height="140%">
+    <feGaussianBlur in="SourceAlpha" stdDeviation="5" result="b"/>
+    <feSpecularLighting in="b" surfaceScale="7" specularConstant="1.1" specularExponent="26" lighting-color="#fff" result="s">
+      <feDistantLight azimuth="225" elevation="42"/>
+    </feSpecularLighting>
+    <feComposite in="s" in2="SourceAlpha" operator="in" result="si"/>
+    <feComposite in="SourceGraphic" in2="si" operator="arithmetic" k1="0" k2="1" k3=".85" k4="0"/>
+  </filter>
+  <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+    <feGaussianBlur stdDeviation="7" result="g"/><feMerge><feMergeNode in="g"/><feMergeNode in="SourceGraphic"/></feMerge>
+  </filter>
+  <filter id="softglow" x="-30%" y="-30%" width="160%" height="160%">
+    <feGaussianBlur stdDeviation="16"/>
+  </filter>`;
+
+// 4-point twinkle
+const twinkle = (x, y, r, o = 1) => `<path transform="translate(${x} ${y})" opacity="${o}" filter="url(#glow)" fill="#fff"
+  d="M0 ${-r} Q${r * 0.12} ${-r * 0.12} ${r} 0 Q${r * 0.12} ${r * 0.12} 0 ${r} Q${-r * 0.12} ${r * 0.12} ${-r} 0 Q${-r * 0.12} ${-r * 0.12} 0 ${-r}Z"/>`;
+
+// iridescent butterfly
+function butterfly(x, y, s, rot) {
+  return `<g transform="translate(${x} ${y}) rotate(${rot}) scale(${s})" stroke="#4B2C91" stroke-width="2.4">
+    <path d="M0 0 C -30 -60, -92 -58, -84 -12 C -80 14, -34 16, 0 4 Z" fill="url(#holo)"/>
+    <path d="M0 0 C 30 -60, 92 -58, 84 -12 C 80 14, 34 16, 0 4 Z" fill="url(#holo)"/>
+    <path d="M0 6 C -26 14, -60 44, -38 60 C -18 72, -4 40, 0 10 Z" fill="url(#holo)"/>
+    <path d="M0 6 C 26 14, 60 44, 38 60 C 18 72, 4 40, 0 10 Z" fill="url(#holo)"/>
+    <path d="M-50 -34 C -40 -42, -24 -36, -20 -22" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity=".8"/>
+    <path d="M50 -34 C 40 -42, 24 -36, 20 -22" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity=".8"/>
+    <rect x="-5" y="-26" width="10" height="66" rx="5" fill="#4B2C91" stroke="none"/>
+    <path d="M-2 -24 C -8 -44, -18 -52, -26 -54 M2 -24 C 8 -44, 18 -52, 26 -54" fill="none" stroke-linecap="round"/>
+    <circle cx="-26" cy="-54" r="3.5" fill="#4B2C91"/><circle cx="26" cy="-54" r="3.5" fill="#4B2C91"/>
+  </g>`;
+}
+
+// orbit ring around the product: back half behind it, front half in front
+const RING = { cx: 540, cy: 926, rx: 384, ry: 88, rot: -8 };
+const ring = (clip) => `<g transform="rotate(${RING.rot} ${RING.cx} ${RING.cy})" clip-path="url(#${clip})">
+    <ellipse cx="${RING.cx}" cy="${RING.cy}" rx="${RING.rx}" ry="${RING.ry}" fill="none" stroke="#3B2A7C" stroke-width="20" opacity=".9"/>
+    <ellipse cx="${RING.cx}" cy="${RING.cy}" rx="${RING.rx}" ry="${RING.ry}" fill="none" stroke="url(#chromeH)" stroke-width="14"/>
+    <ellipse cx="${RING.cx}" cy="${RING.cy - 3}" rx="${RING.rx}" ry="${RING.ry}" fill="none" stroke="#fff" stroke-width="3" opacity=".9"/>
+  </g>`;
+const clips = `
+  <clipPath id="ringBack"><rect x="0" y="0" width="1080" height="${RING.cy}" transform="rotate(${RING.rot} ${RING.cx} ${RING.cy})"/></clipPath>
+  <clipPath id="ringFront"><rect x="0" y="${RING.cy}" width="1080" height="600" transform="rotate(${RING.rot} ${RING.cx} ${RING.cy})"/></clipPath>`;
+
+// glossy bead on the ring at angle t (front half)
+function bead(t, r, fill) {
+  const a = (RING.rot * Math.PI) / 180;
+  const ex = RING.rx * Math.cos(t), ey = RING.ry * Math.sin(t);
+  const x = RING.cx + ex * Math.cos(a) - ey * Math.sin(a), y = RING.cy + ex * Math.sin(a) + ey * Math.cos(a);
+  return `<circle cx="${x}" cy="${y}" r="${r}" fill="${fill}" stroke="#3B2A7C" stroke-width="3"/>
+    <ellipse cx="${x - r * 0.3}" cy="${y - r * 0.38}" rx="${r * 0.45}" ry="${r * 0.28}" fill="#fff" opacity=".9"/>`;
+}
+
+// pedestal: chrome cylinder with a holographic top
+const PED = { cx: 540, cy: 1030, rx: 262, ry: 46, h: 40 };
+const pedestal = `
+  <ellipse cx="${PED.cx}" cy="${PED.cy + PED.h + 18}" rx="${PED.rx + 30}" ry="${PED.ry}" fill="#5B3FB0" opacity=".35" filter="url(#softglow)"/>
+  <path d="M${PED.cx - PED.rx} ${PED.cy} v${PED.h} a${PED.rx} ${PED.ry} 0 0 0 ${PED.rx * 2} 0 v${-PED.h} Z" fill="url(#chromeH)" stroke="#3B2A7C" stroke-width="4"/>
+  <ellipse cx="${PED.cx}" cy="${PED.cy}" rx="${PED.rx}" ry="${PED.ry}" fill="url(#holo)" stroke="#3B2A7C" stroke-width="4"/>
+  <ellipse cx="${PED.cx}" cy="${PED.cy - 4}" rx="${PED.rx - 26}" ry="${PED.ry - 12}" fill="none" stroke="#fff" stroke-width="3" opacity=".8"/>`;
+
+// starburst sticker
+function sticker(cx, cy, r, rot) {
+  const pts = [];
+  for (let i = 0; i < 28; i++) {
+    const a = (i / 28) * Math.PI * 2, rr = i % 2 ? r * 0.84 : r;
+    pts.push(`${(cx + Math.cos(a) * rr).toFixed(1)},${(cy + Math.sin(a) * rr).toFixed(1)}`);
+  }
+  return `<g transform="rotate(${rot} ${cx} ${cy})">
+    <polygon points="${pts.join(' ')}" fill="#3B2A7C" transform="translate(5 6)"/>
+    <polygon points="${pts.join(' ')}" fill="url(#holo)" stroke="#3B2A7C" stroke-width="4" stroke-linejoin="round"/>
+    <g font-family="Fredoka" font-weight="700" fill="#3B2A7C" text-anchor="middle" direction="rtl">
+      <text x="${cx}" y="${cy - 6}" font-size="30">בלי</text>
+      <text x="${cx}" y="${cy + 28}" font-size="25">אפליקציה!</text>
+    </g></g>`;
+}
+
+document.getElementById('back').innerHTML = `<defs>${DEFS}${clips}</defs>
+  ${pedestal}
+  ${ring('ringBack')}
+  ${twinkle(330, 610, 30, 0.95)}${twinkle(760, 540, 22, 0.9)}`;
+
+document.getElementById('front').innerHTML = `<defs>${DEFS}${clips}</defs>
+  ${ring('ringFront')}
+  ${bead(Math.PI * 0.16, 17, 'url(#holo)')}${bead(Math.PI * 0.8, 12, '#FF8AD8')}
+  ${sticker(918, 610, 96, 12)}
+  ${twinkle(214, 958, 26)}${twinkle(842, 1004, 18)}`;
+
+// ---------- headline: liquid-chrome TAP! + holographic bubble Hebrew ----------
+document.getElementById('top').innerHTML = `<defs>${DEFS}</defs>
+  <g font-family="Unbounded" font-weight="900" font-size="226" text-anchor="middle" letter-spacing="-6">
+    <text x="540" y="318" fill="#fff" stroke="#fff" stroke-width="34" stroke-linejoin="round" filter="url(#glow)">TAP!</text>
+    <text x="548" y="328" fill="#3B2A7C" stroke="#3B2A7C" stroke-width="20" stroke-linejoin="round">TAP!</text>
+    <text x="540" y="318" fill="#2B1F63" stroke="#2B1F63" stroke-width="10" stroke-linejoin="round">TAP!</text>
+    <text x="540" y="318" fill="url(#chrome)" filter="url(#spec)">TAP!</text>
+  </g>
+  <g font-family="Rubik Bubbles" font-size="88" text-anchor="middle" direction="rtl">
+    <text x="546" y="452" fill="#3B2A7C" stroke="#3B2A7C" stroke-width="12" stroke-linejoin="round">אחד ושימו דירוג!</text>
+    <text x="540" y="446" fill="#fff" stroke="#fff" stroke-width="12" stroke-linejoin="round">אחד ושימו דירוג!</text>
+    <text x="540" y="446" fill="url(#holo)" stroke="#3B2A7C" stroke-width="2.5">אחד ושימו דירוג!</text>
+  </g>
+  ${butterfly(126, 520, 0.95, -18)}${butterfly(978, 182, 0.62, 16)}
+  ${twinkle(92, 228, 34)}${twinkle(1000, 330, 24)}${twinkle(170, 120, 14, 0.9)}${twinkle(880, 86, 16, 0.9)}
+  ${twinkle(1010, 760, 20, 0.9)}${twinkle(70, 770, 16, 0.85)}
+  <g transform="translate(626 1216)">
+    <path d="M0 0 L0 54 L13 42 L22 62 L31 58 L22 38 L40 38 Z" fill="#fff" stroke="#111" stroke-width="3.5" stroke-linejoin="round"/>
+  </g>`;
+
+done();
+</script>
+</body>
+</html>

@@ -1,0 +1,67 @@
+@font-face{font-family:'Rubik Pixels';font-style:normal;font-weight:400;font-display:block;src:url('RubikPixels-400.ttf') format('truetype');}
+@font-face{font-family:'Press Start 2P';font-style:normal;font-weight:400;font-display:block;src:url('PressStart2P-400.ttf') format('truetype');}
+@font-face{font-family:'Silkscreen';font-style:normal;font-weight:400;font-display:block;src:url('Silkscreen-400.ttf') format('truetype');}
+@font-face{font-family:'Silkscreen';font-style:normal;font-weight:700;font-display:block;src:url('Silkscreen-700.ttf') format('truetype');}
+@font-face{font-family:'VT323';font-style:normal;font-weight:400;font-display:block;src:url('VT323-400.ttf') format('truetype');}
+@font-face{font-family:'Heebo';font-style:normal;font-weight:100;font-display:block;src:url('Heebo-100.ttf') format('truetype');}
+@font-face{font-family:'Heebo';font-style:normal;font-weight:200;font-display:block;src:url('Heebo-200.ttf') format('truetype');}
+@font-face{font-family:'Heebo';font-style:normal;font-weight:300;font-display:block;src:url('Heebo-300.ttf') format('truetype');}
+@font-face{font-family:'Heebo';font-style:normal;font-weight:400;font-display:block;src:url('Heebo-400.ttf') format('truetype');}
+@font-face{font-family:'Heebo';font-style:normal;font-weight:500;font-display:block;src:url('Heebo-500.ttf') format('truetype');}
+@font-face{font-family:'Heebo';font-style:normal;font-weight:700;font-display:block;src:url('Heebo-700.ttf') format('truetype');}
+@font-face{font-family:'Heebo';font-style:normal;font-weight:800;font-display:block;src:url('Heebo-800.ttf') format('truetype');}
+@font-face{font-family:'Heebo';font-style:normal;font-weight:900;font-display:block;src:url('Heebo-900.ttf') format('truetype');}
+@font-face{font-family:'Rubik';font-style:normal;font-weight:300;font-display:block;src:url('Rubik-300.ttf') format('truetype');}
+@font-face{font-family:'Rubik';font-style:normal;font-weight:400;font-display:block;src:url('Rubik-400.ttf') format('truetype');}
+@font-face{font-family:'Rubik';font-style:normal;font-weight:500;font-display:block;src:url('Rubik-500.ttf') format('truetype');}
+@font-face{font-family:'Rubik';font-style:normal;font-weight:600;font-display:block;src:url('Rubik-600.ttf') format('truetype');}
+@font-face{font-family:'Rubik';font-style:normal;font-weight:700;font-display:block;src:url('Rubik-700.ttf') format('truetype');}
+@font-face{font-family:'Rubik';font-style:normal;font-weight:800;font-display:block;src:url('Rubik-800.ttf') format('truetype');}
+@font-face{font-family:'Rubik';font-style:normal;font-weight:900;font-display:block;src:url('Rubik-900.ttf') format('truetype');}
+@font-face{font-family:'Anton';font-style:normal;font-weight:400;font-display:block;src:url('Anton-400.ttf') format('truetype');}
+@font-face{font-family:'Bebas Neue';font-style:normal;font-weight:400;font-display:block;src:url('BebasNeue-400.ttf') format('truetype');}
+@font-face{font-family:'Archivo Black';font-style:normal;font-weight:400;font-display:block;src:url('ArchivoBlack-400.ttf') format('truetype');}
+@font-face{font-family:'Jost';font-style:normal;font-weight:300;font-display:block;src:url('Jost-300.ttf') format('truetype');}
+@font-face{font-family:'Jost';font-style:normal;font-weight:400;font-display:block;src:url('Jost-400.ttf') format('truetype');}
+@font-face{font-family:'Jost';font-style:normal;font-weight:500;font-display:block;src:url('Jost-500.ttf') format('truetype');}
+@font-face{font-family:'Jost';font-style:normal;font-weight:600;font-display:block;src:url('Jost-600.ttf') format('truetype');}
+@font-face{font-family:'Jost';font-style:normal;font-weight:700;font-display:block;src:url('Jost-700.ttf') format('truetype');}
+@font-face{font-family:'Jost';font-style:normal;font-weight:800;font-display:block;src:url('Jost-800.ttf') format('truetype');}
+@font-face{font-family:'Jost';font-style:normal;font-weight:900;font-display:block;src:url('Jost-900.ttf') format('truetype');}
+@font-face{font-family:'Bangers';font-style:normal;font-weight:400;font-display:block;src:url('Bangers-400.ttf') format('truetype');}
+@font-face{font-family:'Secular One';font-style:normal;font-weight:400;font-display:block;src:url('SecularOne-400.ttf') format('truetype');}
+@font-face{font-family:'Suez One';font-style:normal;font-weight:400;font-display:block;src:url('SuezOne-400.ttf') format('truetype');}
+@font-face{font-family:'Karantina';font-style:normal;font-weight:300;font-display:block;src:url('Karantina-300.ttf') format('truetype');}
+@font-face{font-family:'Karantina';font-style:normal;font-weight:400;font-display:block;src:url('Karantina-400.ttf') format('truetype');}
+@font-face{font-family:'Karantina';font-style:normal;font-weight:700;font-display:block;src:url('Karantina-700.ttf') format('truetype');}
+@font-face{font-family:'Frank Ruhl Libre';font-style:normal;font-weight:300;font-display:block;src:url('FrankRuhlLibre-300.ttf') format('truetype');}
+@font-face{font-family:'Frank Ruhl Libre';font-style:normal;font-weight:400;font-display:block;src:url('FrankRuhlLibre-400.ttf') format('truetype');}
+@font-face{font-family:'Frank Ruhl Libre';font-style:normal;font-weight:500;font-display:block;src:url('FrankRuhlLibre-500.ttf') format('truetype');}
+@font-face{font-family:'Frank Ruhl Libre';font-style:normal;font-weight:700;font-display:block;src:url('FrankRuhlLibre-700.ttf') format('truetype');}
+@font-face{font-family:'Frank Ruhl Libre';font-style:normal;font-weight:900;font-display:block;src:url('FrankRuhlLibre-900.ttf') format('truetype');}
+@font-face{font-family:'Bellefair';font-style:normal;font-weight:400;font-display:block;src:url('Bellefair-400.ttf') format('truetype');}
+@font-face{font-family:'Rubik Bubbles';font-style:normal;font-weight:400;font-display:block;src:url('RubikBubbles-400.ttf') format('truetype');}
+@font-face{font-family:'Rubik Gemstones';font-style:normal;font-weight:400;font-display:block;src:url('RubikGemstones-400.ttf') format('truetype');}
+@font-face{font-family:'Rubik 80s Fade';font-style:normal;font-weight:400;font-display:block;src:url('Rubik80sFade-400.ttf') format('truetype');}
+@font-face{font-family:'Rubik Glitch';font-style:normal;font-weight:400;font-display:block;src:url('RubikGlitch-400.ttf') format('truetype');}
+@font-face{font-family:'Rubik Mono One';font-style:normal;font-weight:400;font-display:block;src:url('RubikMonoOne-400.ttf') format('truetype');}
+@font-face{font-family:'Fredoka';font-style:normal;font-weight:400;font-display:block;src:url('Fredoka-400.ttf') format('truetype');}
+@font-face{font-family:'Fredoka';font-style:normal;font-weight:500;font-display:block;src:url('Fredoka-500.ttf') format('truetype');}
+@font-face{font-family:'Fredoka';font-style:normal;font-weight:600;font-display:block;src:url('Fredoka-600.ttf') format('truetype');}
+@font-face{font-family:'Fredoka';font-style:normal;font-weight:700;font-display:block;src:url('Fredoka-700.ttf') format('truetype');}
+@font-face{font-family:'Varela Round';font-style:normal;font-weight:400;font-display:block;src:url('VarelaRound-400.ttf') format('truetype');}
+@font-face{font-family:'Audiowide';font-style:normal;font-weight:400;font-display:block;src:url('Audiowide-400.ttf') format('truetype');}
+@font-face{font-family:'Orbitron';font-style:normal;font-weight:400;font-display:block;src:url('Orbitron-400.ttf') format('truetype');}
+@font-face{font-family:'Orbitron';font-style:normal;font-weight:700;font-display:block;src:url('Orbitron-700.ttf') format('truetype');}
+@font-face{font-family:'Orbitron';font-style:normal;font-weight:900;font-display:block;src:url('Orbitron-900.ttf') format('truetype');}
+@font-face{font-family:'Michroma';font-style:normal;font-weight:400;font-display:block;src:url('Michroma-400.ttf') format('truetype');}
+@font-face{font-family:'Unbounded';font-style:normal;font-weight:400;font-display:block;src:url('Unbounded-400.ttf') format('truetype');}
+@font-face{font-family:'Unbounded';font-style:normal;font-weight:700;font-display:block;src:url('Unbounded-700.ttf') format('truetype');}
+@font-face{font-family:'Unbounded';font-style:normal;font-weight:900;font-display:block;src:url('Unbounded-900.ttf') format('truetype');}
+@font-face{font-family:'Space Mono';font-style:normal;font-weight:400;font-display:block;src:url('SpaceMono-400.ttf') format('truetype');}
+@font-face{font-family:'Space Mono';font-style:normal;font-weight:700;font-display:block;src:url('SpaceMono-700.ttf') format('truetype');}
+@font-face{font-family:'Space Grotesk';font-style:normal;font-weight:300;font-display:block;src:url('SpaceGrotesk-300.ttf') format('truetype');}
+@font-face{font-family:'Space Grotesk';font-style:normal;font-weight:400;font-display:block;src:url('SpaceGrotesk-400.ttf') format('truetype');}
+@font-face{font-family:'Space Grotesk';font-style:normal;font-weight:500;font-display:block;src:url('SpaceGrotesk-500.ttf') format('truetype');}
+@font-face{font-family:'Space Grotesk';font-style:normal;font-weight:700;font-display:block;src:url('SpaceGrotesk-700.ttf') format('truetype');}
+@font-face{font-family:'Unifont';font-style:normal;font-weight:400;font-display:block;src:url('Unifont.otf') format('opentype');}
