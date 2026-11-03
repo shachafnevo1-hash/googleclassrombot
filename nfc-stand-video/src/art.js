@@ -13,10 +13,14 @@
     return c;
   };
 
-  // ── Hero product: printed face of the acrylic stand (900 × 1400) ──────────
-  A.STAND_TEX = { w: 900, h: 1400 };
+  // ── Hero product: printed face of the acrylic stand (920 × 1400) ──────────
+  // Matched to the real product: satin indigo-navy print, small orange stars,
+  // Open Sans Hebrew headline, thin light-blue wave band, printed G disc,
+  // regular/bold mixed RTL body line and a thin grey NFC pictogram.
+  A.STAND_TEX = { w: 920, h: 1400 };
+  A.STAND_LAYOUT = { badgeV: 0.528, badgeR: 0.122 }; // fractions of H / W
   A.standFace = function () {
-    const W = 900, H = 1400, R = 80;
+    const W = 920, H = 1400, R = 46;
     const cv = A.canvas(W, H), x = cv.getContext('2d');
     x.beginPath();
     x.moveTo(0, H); x.lineTo(0, R); x.arcTo(0, 0, R, 0, R); x.lineTo(W - R, 0); x.arcTo(W, 0, W, R, R); x.lineTo(W, H); x.closePath();
@@ -24,82 +28,80 @@
     x.clip();
     x.fillStyle = '#FFFFFF';
     x.fillRect(0, 0, W, H);
-    // faint paper-white gradient on the lower half
-    let g = x.createLinearGradient(0, H * 0.5, 0, H);
-    g.addColorStop(0, '#FFFFFF'); g.addColorStop(1, '#F3F5F8');
-    x.fillStyle = g; x.fillRect(0, H * 0.5, W, H * 0.5);
 
-    // S-curve wave border
-    const wave = (ctx, dy = 0) => {
-      ctx.moveTo(W + 2, H * 0.552 + dy);
-      ctx.bezierCurveTo(W * 0.8, H * 0.556 + dy, W * 0.66, H * 0.512 + dy, W * 0.5, H * 0.522 + dy);
-      ctx.bezierCurveTo(W * 0.32, H * 0.533 + dy, W * 0.18, H * 0.488 + dy, -2, H * 0.494 + dy);
+    // wave: left high, dips under the badge, lower on the right
+    const waveY = (k) => [H * 0.497, H * 0.522, H * 0.534, H * 0.556].map((v) => v + k);
+    const wavePath = (ctx, k, close) => {
+      const [y0, y1, y2, y3] = waveY(k);
+      if (close) { ctx.moveTo(-2, -2); ctx.lineTo(W + 2, -2); ctx.lineTo(W + 2, y3); }
+      else ctx.moveTo(W + 2, y3);
+      ctx.bezierCurveTo(W * 0.78, y3 + 2, W * 0.66, y2 - 4, W * 0.5, y2 - 6);
+      ctx.bezierCurveTo(W * 0.3, y1 - 6, W * 0.18, y0 - 2, -2, y0);
+      if (close) ctx.closePath();
     };
-    // bright cyan-blue accent line just under the navy
+    // light-blue band (fades into white)
     x.save();
-    x.beginPath(); wave(x, 9);
-    x.strokeStyle = '#0066FF'; x.lineWidth = 16; x.shadowColor = 'rgba(0,102,255,0.45)'; x.shadowBlur = 14; x.stroke();
-    x.restore();
-    // navy top
-    x.beginPath();
-    x.moveTo(-2, -2); x.lineTo(W + 2, -2); x.lineTo(W + 2, H * 0.552);
-    x.bezierCurveTo(W * 0.8, H * 0.556, W * 0.66, H * 0.512, W * 0.5, H * 0.522);
-    x.bezierCurveTo(W * 0.32, H * 0.533, W * 0.18, H * 0.488, -2, H * 0.494);
-    x.closePath();
-    g = x.createLinearGradient(0, 0, 0, H * 0.55);
-    g.addColorStop(0, '#072A6C'); g.addColorStop(1, '#0A388A');
+    x.beginPath(); wavePath(x, 24, true);
+    let g = x.createLinearGradient(0, 0, W, 0);
+    g.addColorStop(0, '#5B97DE'); g.addColorStop(0.5, '#3F80D6'); g.addColorStop(1, '#2F6FCB');
     x.fillStyle = g; x.fill();
-    // soft printed highlight, upper-left
-    const rg = x.createRadialGradient(W * 0.2, H * 0.05, 0, W * 0.2, H * 0.05, W * 0.9);
-    rg.addColorStop(0, 'rgba(90,140,255,0.16)'); rg.addColorStop(1, 'rgba(90,140,255,0)');
-    x.save(); x.clip(); x.fillStyle = rg; x.fillRect(0, 0, W, H); x.restore();
-
-    // Five gold stars
-    for (let i = 0; i < 5; i++) U.star(x, W / 2 + (i - 2) * 86, 186, 36, 1, C.gold);
-
-    // Hebrew headline — RTL paragraph direction so bidi ordering is correct:
-    // "Tap" sits on the right, "אחד" to its left; "!" ends at the left edge.
-    const head = { size: 116, weight: 800, family: 'Rubik', italic: true, color: '#FFFFFF', align: 'center', dir: 'rtl' };
-    const fit = (str, o, maxW) => {
-      const w = U.measure(x, str, o);
-      return w > maxW ? Object.assign({}, o, { size: (o.size * maxW) / w }) : o;
-    };
-    const l1 = fit('Tap אחד', head, W * 0.8), l2 = fit('ושימו דירוג!', head, W * 0.8);
-    const hs = Math.min(l1.size, l2.size);
-    U.text(x, 'Tap אחד', W / 2, 352, Object.assign({}, head, { size: hs }));
-    U.text(x, 'ושימו דירוג!', W / 2, 352 + hs * 1.12, Object.assign({}, head, { size: hs }));
-
-    // Contact shadow under the raised badge
-    const bY = H * (1 - 0.505), bR = (0.062 / 0.4) * W;
-    const sg = x.createRadialGradient(W / 2 + 8, bY + 22, bR * 0.7, W / 2 + 8, bY + 22, bR * 1.32);
-    sg.addColorStop(0, 'rgba(0,0,0,0.30)'); sg.addColorStop(1, 'rgba(0,0,0,0)');
-    x.fillStyle = sg; x.fillRect(0, bY - bR * 2, W, bR * 4);
-
-    // Bottom Hebrew line, bold black
-    const body = fit('פשוט רק להצמיד את הטלפון, זהו!', { size: 60, weight: 700, family: 'Rubik', color: '#111318', align: 'center', dir: 'rtl' }, W * 0.86);
-    U.text(x, 'פשוט רק להצמיד את הטלפון, זהו!', W / 2, 966, body);
-
-    // NFC line-art: [NFC] tag ── )) ── phone outline
+    x.restore();
     x.save();
-    x.strokeStyle = '#111318'; x.lineWidth = 8; x.lineJoin = 'round'; x.lineCap = 'round';
-    const cy = 1158;
-    U.rr(x, 268, cy - 30, 120, 66, 14); x.stroke();
-    U.text(x, 'NFC', 328, cy + 3, { size: 38, weight: 800, family: 'Inter', color: '#111318', align: 'center', baseline: 'middle', ls: 0.5 });
-    for (let i = 0; i < 2; i++) { x.beginPath(); x.arc(410 + i * 4, cy + 3, 26 + i * 24, -0.85, 0.85); x.stroke(); }
-    U.rr(x, 492, cy - 100, 120, 206, 22); x.stroke();
-    x.beginPath(); x.moveTo(530, cy - 82); x.lineTo(574, cy - 82); x.stroke();
+    x.beginPath(); wavePath(x, 24, false);
+    x.strokeStyle = 'rgba(255,255,255,0.55)'; x.lineWidth = 6; x.filter = 'blur(3px)'; x.stroke();
+    x.restore();
+    // navy print
+    x.beginPath(); wavePath(x, 0, true);
+    g = x.createLinearGradient(0, 0, W * 0.3, H * 0.56);
+    g.addColorStop(0, '#24277A'); g.addColorStop(0.55, '#1E2066'); g.addColorStop(1, '#1A1B58');
+    x.fillStyle = g; x.fill();
+
+    // small orange stars
+    for (let i = 0; i < 5; i++) U.star(x, W / 2 + (i - 2) * 52, H * 0.107, 15, 1, '#F2701F');
+
+    // headline (Open Sans semi-bold italic, white), RTL paragraph
+    const head = { size: 118, weight: 700, family: 'Open Sans', italic: true, color: '#FFFFFF', align: 'center', dir: 'rtl', ls: 0 };
+    U.text(x, 'Tap אחד', W / 2, H * 0.236, head);
+    U.text(x, 'ושימו דירוג!', W / 2, H * 0.33, head);
+
+    // printed G disc with soft drop shadow
+    const bY = H * A.STAND_LAYOUT.badgeV, bR = W * A.STAND_LAYOUT.badgeR;
+    x.save();
+    x.shadowColor = 'rgba(0,0,0,0.38)'; x.shadowBlur = 26; x.shadowOffsetY = 10;
+    x.beginPath(); x.arc(W / 2, bY, bR, 0, Math.PI * 2); x.fillStyle = '#FFFFFF'; x.fill();
+    x.restore();
+    U.gLogo(x, W / 2, bY, bR * 0.6);
+
+    // body line: regular grey with bold "להצמיד" and "זהו!" — laid out right→left
+    const segs = [['פשוט רק ', 400], ['להצמיד', 700], [' את הטלפון, ', 400], ['זהו!', 700]];
+    const base = { size: 57, family: 'Open Sans', color: '#2E2F33', dir: 'rtl', align: 'right' };
+    const ws = segs.map(([t, w]) => U.measure(x, t, Object.assign({}, base, { weight: w })));
+    const tot = ws.reduce((a, b) => a + b, 0);
+    let rx = W / 2 + tot / 2;
+    segs.forEach(([t, w], i) => { U.text(x, t, rx, H * 0.705, Object.assign({}, base, { weight: w })); rx -= ws[i]; });
+
+    // NFC pictogram: [NFC] tag + two arcs + phone outline, thin grey strokes
+    x.save();
+    const ink = '#3A3B40';
+    x.strokeStyle = ink; x.lineWidth = 6; x.lineJoin = 'round'; x.lineCap = 'round';
+    const cy = H * 0.872;
+    x.translate(W / 2, cy); x.scale(1.2, 1.2); x.translate(-W / 2 - 3, -cy);
+    U.rr(x, 316, cy - 26, 100, 52, 14); x.stroke();
+    U.text(x, 'NFC', 366, cy + 2, { size: 30, weight: 700, family: 'Open Sans', color: ink, align: 'center', baseline: 'middle' });
+    for (let i = 0; i < 2; i++) { x.beginPath(); x.arc(432 + i * 2, cy, 22 + i * 20, -0.9, 0.9); x.stroke(); }
+    U.rr(x, 500, cy - 88, 98, 176, 18); x.stroke();
+    U.rr(x, 530, cy - 74, 38, 8, 4); x.fillStyle = ink; x.fill();
     x.restore();
     x.restore();
     return cv;
   };
 
-  // Raised badge cap (512²): white disc + four-colour G
+  // Badge cap (512²): printed white disc + four-colour G (thin epoxy dome)
   A.badgeTex = function () {
     const S = 512, cv = A.canvas(S, S), x = cv.getContext('2d');
-    const g = x.createRadialGradient(S * 0.42, S * 0.38, 0, S / 2, S / 2, S / 2);
-    g.addColorStop(0, '#FFFFFF'); g.addColorStop(0.8, '#F7F8FA'); g.addColorStop(1, '#E3E6EA');
+    const g = x.createRadialGradient(S * 0.42, S * 0.36, 0, S / 2, S / 2, S / 2);
+    g.addColorStop(0, '#FFFFFF'); g.addColorStop(0.85, '#FAFAFB'); g.addColorStop(1, '#ECEEF1');
     x.beginPath(); x.arc(S / 2, S / 2, S / 2, 0, PI * 2); x.fillStyle = g; x.fill();
-    x.beginPath(); x.arc(S / 2, S / 2, S / 2 - 6, 0, PI * 2); x.strokeStyle = 'rgba(0,0,0,0.06)'; x.lineWidth = 4; x.stroke();
     U.gLogo(x, S / 2, S / 2, S * 0.3);
     return cv;
   };

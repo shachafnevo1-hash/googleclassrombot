@@ -132,7 +132,7 @@
   }
   function attachPose(sp, gap) {
     const Mp = R3.panelMatrix(R3.standMatrix(sp));
-    const w = R3.M.apply(Mp, [0.016, D.badgeY + 0.052, D.badgeT + D.phoneT / 2 + 0.002 + gap]);
+    const w = R3.M.apply(Mp, [0.016, D.badgeY + 0.072, D.badgeT + D.phoneT / 2 + 0.002 + gap]);
     return { x: w[0], y: w[1], z: w[2], yaw: sp.yaw, pitch: -D.tilt, roll: -0.1, scale: sp.scale };
   }
   function phonePose(t) {

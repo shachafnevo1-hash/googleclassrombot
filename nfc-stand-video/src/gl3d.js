@@ -44,9 +44,10 @@
 
   // ── Product dimensions (world units ≈ metres × 2) ─────────────────────────
   const D = {
-    panelW: 0.4, panelH: 0.62, panelT: 0.012, tilt: (8 * Math.PI) / 180,
-    baseW: 0.4, baseH: 0.012, baseZ0: -0.022, baseZ1: 0.17,
-    badgeY: 0.62 * 0.505, badgeR: 0.062, badgeT: 0.011,
+    // One sheet of 3 mm white acrylic bent into an L (real product proportions)
+    panelW: 0.62 * (920 / 1400), panelH: 0.62, panelT: 0.0095, tilt: (14 * Math.PI) / 180,
+    baseDepth: 0.23, bendR: 0.016,
+    badgeY: 0.62 * (1 - 0.528), badgeR: 0.62 * (920 / 1400) * 0.122, badgeT: 0.0035,
     phoneW: 0.1425, phoneH: 0.3, phoneT: 0.0085,
   };
 
@@ -79,8 +80,8 @@
       vec3 rgb = c.rgb*(0.9+0.1*ndl);
       // static acrylic sheen + travelling gloss band
       float d = (vUV.x*0.8 + (1.0-vUV.y)*0.6);
-      float sheen = uSheen * smoothstep(0.55,0.0,d) * 0.10;
-      float band = uGlossAmt * exp(-pow((d - uGlossPos)/0.07, 2.0)) * 0.42;
+      float sheen = uSheen * smoothstep(0.55,0.0,d) * 0.06;
+      float band = uGlossAmt * exp(-pow((d - uGlossPos)/0.08, 2.0)) * 0.3;
       rgb += (sheen + band) * c.a;
       c = vec4(rgb, c.a);
     } else if(uMode==1){ // extrusion layer: solid colour masked by tex alpha
@@ -88,7 +89,7 @@
       if(a < 0.5) discard;
       c = vec4(uColor.rgb*(0.82+0.18*ndl), 1.0);
     } else { // lit solid
-      vec3 rgb = uColor.rgb*(0.7+0.3*ndl) + vec3(spec*0.35);
+      vec3 rgb = uColor.rgb*(0.8+0.2*ndl) + vec3(spec*0.3);
       c = vec4(rgb, 1.0);
     }
     float a = uAlpha;
@@ -207,7 +208,17 @@
     const w = R3.screenToWorld(p.sx, p.sy, p.z || 0);
     return M.chain(M.T(w[0], w[1], w[2]), M.Ry(p.yaw || 0), M.S(p.scale || 1));
   };
-  R3.panelMatrix = (Ms) => M.chain(Ms, M.T(0, D.baseH, 0), M.Rx(-D.tilt));
+  // Bend geometry: the base centre-line runs front→back at y = T/2, then turns
+  // through (90° − tilt) around a centre of curvature into the leaning panel.
+  const BEND = (() => {
+    const T = D.panelT, R = D.bendR + T / 2, phi = Math.PI / 2 - D.tilt;
+    const c = [T / 2 + R, 0]; // (y, z)
+    const at = (th) => [c[0] - R * Math.cos(th), c[1] - R * Math.sin(th)];
+    return { R, phi, at, end: at(phi) };
+  })();
+  R3.BEND = BEND;
+  // Panel frame: origin on the printed (front) face at the panel's bottom edge.
+  R3.panelMatrix = (Ms) => M.chain(Ms, M.T(0, BEND.end[0], BEND.end[1]), M.Rx(-D.tilt), M.T(0, 0, D.panelT / 2));
   R3.badgeWorld = function (p, extraZ = 0) {
     const Mp = R3.panelMatrix(R3.standMatrix(p));
     return M.apply(Mp, [0, D.badgeY, D.badgeT + extraZ]).slice(0, 3);
@@ -259,16 +270,23 @@
   function drawStand(Ms, s, refl) {
     const ms = R3.meshes;
     const o = { alpha: s.alpha == null ? 1 : s.alpha, refl: !!refl, reflY: s.reflY };
-    const acrylic = [0.93, 0.95, 0.97];
-    // Base plate (white acrylic)
-    draw(ms.cube, M.chain(Ms, M.T(0, D.baseH / 2, (D.baseZ0 + D.baseZ1) / 2), M.S(D.baseW, D.baseH, D.baseZ1 - D.baseZ0)), 2, Object.assign({ color: acrylic }, o));
+    const acrylic = [0.95, 0.955, 0.965];
+    const T = D.panelT;
+    // Base plate (same sheet, same width as the panel)
+    draw(ms.cube, M.chain(Ms, M.T(0, T / 2, D.baseDepth / 2), M.S(D.panelW, T, D.baseDepth)), 2, Object.assign({ color: acrylic }, o));
+    // Rounded bend, built from short segments along the arc
+    const NB = 12, seg = (BEND.R * BEND.phi) / NB;
+    for (let i = 0; i < NB; i++) {
+      const th = ((i + 0.5) / NB) * BEND.phi, p = BEND.at(th);
+      draw(ms.cube, M.chain(Ms, M.T(0, p[0], p[1]), M.Rx(th - Math.PI / 2), M.S(D.panelW, seg * 1.08, T)), 2, Object.assign({ color: acrylic }, o));
+    }
     const Mp = R3.panelMatrix(Ms);
     const faceM = M.chain(Mp, M.T(0, D.panelH / 2, 0), M.S(D.panelW, D.panelH, 1));
     // Extruded acrylic thickness (layers masked by the face silhouette)
     const LAYERS = 10;
     for (let i = LAYERS; i >= 1; i--) {
       const z = -(D.panelT * i) / LAYERS;
-      const shade = i === LAYERS ? 0.86 : 0.95;
+      const shade = i === LAYERS ? 0.93 : 0.97;
       draw(ms.quad, M.chain(M.T(0, 0, 0), Mp, M.T(0, D.panelH / 2, z), M.S(D.panelW, D.panelH, 1)), 1,
         Object.assign({ tex: 'stand', color: [acrylic[0] * shade, acrylic[1] * shade, acrylic[2] * shade] }, o));
     }

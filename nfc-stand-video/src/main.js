@@ -13,6 +13,10 @@
     faces.push(new FontFace('Rubik', `url(fonts/rubik-${s}-${w}-normal.woff2)`, { weight: String(w), style: 'normal', unicodeRange: r }));
   for (const w of [700, 800]) for (const [s, r] of [['hebrew', HEB], ['latin', LAT]])
     faces.push(new FontFace('Rubik', `url(fonts/rubik-${s}-${w}-italic.woff2)`, { weight: String(w), style: 'italic', unicodeRange: r }));
+  for (const w of [400, 600, 700]) for (const [s, r] of [['hebrew', HEB], ['latin', LAT]])
+    faces.push(new FontFace('Open Sans', `url(fonts/open-sans-${s}-${w}-normal.woff2)`, { weight: String(w), style: 'normal', unicodeRange: r }));
+  for (const w of [600, 700]) for (const [s, r] of [['hebrew', HEB], ['latin', LAT]])
+    faces.push(new FontFace('Open Sans', `url(fonts/open-sans-${s}-${w}-italic.woff2)`, { weight: String(w), style: 'italic', unicodeRange: r }));
   for (const w of [400, 500, 600, 700])
     faces.push(new FontFace('Inter', `url(fonts/inter-latin-${w}-normal.woff2)`, { weight: String(w), style: 'normal' }));
   await Promise.all(faces.map((f) => f.load().then((ff) => document.fonts.add(ff))));
