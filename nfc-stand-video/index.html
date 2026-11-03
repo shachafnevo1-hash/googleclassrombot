@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NFC Review Stand Film</title>
+<style>
+  :root { --bg: #05070a; --fg: #e8eaed; --muted: #9aa0a6; }
+  html, body { margin: 0; background: var(--bg); color: var(--fg); font: 14px/1.4 system-ui, sans-serif; }
+  #wrap { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 16px; }
+  canvas { width: min(100%, 1280px); height: auto; aspect-ratio: 16/9; display: block; }
+  body.render #ui { display: none; }
+  body.render #wrap { padding: 0; }
+  body.render canvas { width: 1920px; }
+  #ui { display: flex; gap: 12px; align-items: center; width: min(100%, 1280px); }
+  #scrub { flex: 1; }
+  button { background: #1a73e8; color: #fff; border: 0; border-radius: 6px; padding: 6px 14px; font: inherit; cursor: pointer; }
+  #time { font-variant-numeric: tabular-nums; color: var(--muted); min-width: 64px; }
+</style>
+</head>
+<body>
+<div id="wrap">
+  <canvas id="c" width="1920" height="1080"></canvas>
+  <div id="ui">
+    <button id="play">Play</button>
+    <input id="scrub" type="range" min="0" max="18" step="0.001" value="0">
+    <span id="time">0.00 s</span>
+  </div>
+</div>
+<script src="src/util.js"></script>
+<script src="src/gl3d.js"></script>
+<script src="src/art.js"></script>
+<script src="src/timeline.js"></script>
+<script src="src/audio.js"></script>
+<script src="src/main.js"></script>
+<script>
+  // Interactive preview (not used during export). Playback just calls the
+  // same pure seek(t) every animation frame.
+  if (new URLSearchParams(location.search).has('render')) document.body.classList.add('render');
+  window.onReady = () => {
+    if (document.body.classList.contains('render')) return;
+    const scrub = document.getElementById('scrub'), btn = document.getElementById('play'), lbl = document.getElementById('time');
+    let playing = false, t0 = 0, start = 0, actx = null, src = null, buffer = null;
+    const show = (t) => { seek(t); scrub.value = t; lbl.textContent = t.toFixed(2) + ' s'; };
+    scrub.oninput = () => { stop(); show(+scrub.value); };
+    async function play() {
+      if (!buffer) { btn.textContent = '…'; buffer = await Soundtrack.render(); }
+      actx = actx || new AudioContext();
+      src = actx.createBufferSource(); src.buffer = buffer; src.connect(actx.destination);
+      t0 = +scrub.value >= 17.99 ? 0 : +scrub.value; start = actx.currentTime; src.start(0, t0);
+      playing = true; btn.textContent = 'Pause';
+      const loop = () => { if (!playing) return; const t = t0 + actx.currentTime - start; if (t >= 18) { stop(); show(18); return; } show(t); requestAnimationFrame(loop); };
+      loop();
+    }
+    function stop() { if (src) { try { src.stop(); } catch (e) {} src = null; } playing = false; btn.textContent = 'Play'; }
+    btn.onclick = () => (playing ? stop() : play());
+    show(0);
+  };
+</script>
+</body>
+</html>
