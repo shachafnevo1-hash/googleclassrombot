@@ -1,7 +1,9 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// gl3d.js — tiny deterministic WebGL2 renderer for the hero product (acrylic
-// L-stand with raised G badge) and the smartphone. Each call to render() draws
-// a complete frame from a plain scene description: no retained animation state.
+// gl3d.js — small deterministic WebGL2 renderer for the hero product (a single
+// sheet of white acrylic bent into an L whose foot runs BACKWARD under the
+// leaning face) and the smartphone. Real-geometry rounded corners (no stacked
+// layers), rendered at 2× and downsampled for clean edges.
+// Each render() call draws a complete frame from a plain scene description.
 // ─────────────────────────────────────────────────────────────────────────────
 (function () {
   const M = {};
@@ -42,18 +44,20 @@
       m[2] * x + m[6] * y + m[10] * z + m[14] * w, m[3] * x + m[7] * y + m[11] * z + m[15] * w];
   };
 
-  // ── Product dimensions (world units ≈ metres × 2) ─────────────────────────
+  // ── Real-world proportions (0.04 world units ≈ 1 cm) ──────────────────────
+  // Stand face ≈ 15.5 × 10.2 cm, 3 mm acrylic. Phone ≈ 2 cm shorter / narrower.
+  const panelH = 0.62, panelW = panelH * (920 / 1400);
   const D = {
-    // One sheet of 3 mm white acrylic bent into an L (real product proportions)
-    panelW: 0.62 * (920 / 1400), panelH: 0.62, panelT: 0.0095, tilt: (14 * Math.PI) / 180,
-    baseDepth: 0.23, bendR: 0.016,
-    badgeY: 0.62 * (1 - 0.528), badgeR: 0.62 * (920 / 1400) * 0.122, badgeT: 0.0035,
-    phoneW: 0.1425, phoneH: 0.3, phoneT: 0.0085,
+    panelW, panelH, panelT: 0.012, tilt: (14 * Math.PI) / 180, cornerR: panelW * (46 / 920),
+    footDepth: 0.26, bendR: 0.014,
+    badgeY: panelH * (1 - 0.528),
+    phoneH: panelH * 0.88, phoneW: panelH * 0.88 * (840 / 1600), phoneT: 0.03,
   };
+  D.phoneR = D.phoneW * (118 / 840);
 
-  // Camera defaults: 30° vertical FOV, 1 world unit ≈ 840 px at z = 0.
   const CAM = { pos: [0, 0.3, 2.4], target: [0, 0.3, 0], fov: (30 * Math.PI) / 180 };
-  const FPX = 540 / (CAM.pos[2] * Math.tan(CAM.fov / 2)); // ≈ 840
+  const FPX = 540 / (CAM.pos[2] * Math.tan(CAM.fov / 2)); // ≈ 840 px per unit at z = 0
+  const SS = 2; // supersampling factor
 
   const VS = `#version 300 es
   in vec3 aPos; in vec2 aUV; in vec3 aN;
@@ -63,37 +67,31 @@
   const FS = `#version 300 es
   precision highp float;
   in vec2 vUV; in vec3 vN; in vec3 vW;
-  uniform sampler2D uTex; uniform int uMode; uniform vec4 uColor; uniform float uAlpha;
-  uniform float uGlossPos, uGlossAmt, uSheen; uniform float uReflY, uReflOn; uniform vec3 uEye;
+  uniform sampler2D uTex; uniform int uMode; uniform vec4 uColor;
+  uniform float uGlossPos, uGlossAmt, uSheen, uSpec; uniform float uReflY, uReflOn; uniform vec3 uEye;
   out vec4 o;
   void main(){
-    vec3 L = normalize(vec3(-0.45, 0.65, 0.75));
+    vec3 L = normalize(vec3(-0.4, 0.7, 0.8));
     vec3 n = normalize(vN);
     if(!gl_FrontFacing) n = -n;
     float ndl = max(dot(n,L),0.0);
     vec3 V = normalize(uEye - vW);
-    float spec = pow(max(dot(n, normalize(L+V)),0.0), 48.0);
+    float spec = pow(max(dot(n, normalize(L+V)),0.0), 60.0);
     vec4 c;
-    if(uMode==0){ // textured face (premultiplied)
+    if(uMode==0){ // printed / screen face (premultiplied texture)
       c = texture(uTex, vUV);
-      if(c.a < 0.004) discard;
-      vec3 rgb = c.rgb*(0.9+0.1*ndl);
-      // static acrylic sheen + travelling gloss band
+      vec3 rgb = c.rgb*(0.94+0.06*ndl);
       float d = (vUV.x*0.8 + (1.0-vUV.y)*0.6);
-      float sheen = uSheen * smoothstep(0.55,0.0,d) * 0.06;
-      float band = uGlossAmt * exp(-pow((d - uGlossPos)/0.08, 2.0)) * 0.3;
-      rgb += (sheen + band) * c.a;
+      float sheen = uSheen * smoothstep(0.6,0.0,d) * 0.05;
+      float band = uGlossAmt * exp(-pow((d - uGlossPos)/0.09, 2.0)) * 0.22;
+      rgb += (sheen + band + spec*uSpec) * c.a;
       c = vec4(rgb, c.a);
-    } else if(uMode==1){ // extrusion layer: solid colour masked by tex alpha
-      float a = texture(uTex, vUV).a;
-      if(a < 0.5) discard;
-      c = vec4(uColor.rgb*(0.82+0.18*ndl), 1.0);
-    } else { // lit solid
-      vec3 rgb = uColor.rgb*(0.8+0.2*ndl) + vec3(spec*0.3);
+    } else { // lit solid (acrylic edges, phone frame)
+      vec3 rgb = uColor.rgb*(0.8+0.2*ndl) + vec3(spec*uSpec);
       c = vec4(rgb, 1.0);
     }
-    float a = uAlpha;
-    if(uReflOn > 0.5){ float h = uReflY - vW.y; a *= 0.14 * smoothstep(0.2, 0.0, h); }
+    float a = 1.0;
+    if(uReflOn > 0.5){ float h = uReflY - vW.y; a = 0.09 * smoothstep(0.12, 0.0, h); }
     o = vec4(c.rgb * a, c.a * a);
   }`;
 
@@ -109,7 +107,7 @@
 
   R3.init = function (w, h) {
     const canvas = document.createElement('canvas');
-    canvas.width = w; canvas.height = h;
+    canvas.width = w * SS; canvas.height = h * SS;
     const gl = canvas.getContext('webgl2', { antialias: true, premultipliedAlpha: true, preserveDrawingBuffer: true, alpha: true });
     const prog = gl.createProgram();
     gl.attachShader(prog, compile(gl, gl.VERTEX_SHADER, VS));
@@ -118,10 +116,14 @@
     if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(prog));
     gl.useProgram(prog);
     const loc = {};
-    ['uVP', 'uModel', 'uTex', 'uMode', 'uColor', 'uAlpha', 'uGlossPos', 'uGlossAmt', 'uSheen', 'uReflY', 'uReflOn', 'uEye'].forEach((n) => (loc[n] = gl.getUniformLocation(prog, n)));
+    ['uVP', 'uModel', 'uTex', 'uMode', 'uColor', 'uGlossPos', 'uGlossAmt', 'uSheen', 'uSpec', 'uReflY', 'uReflOn', 'uEye'].forEach((n) => (loc[n] = gl.getUniformLocation(prog, n)));
     const attr = { aPos: gl.getAttribLocation(prog, 'aPos'), aUV: gl.getAttribLocation(prog, 'aUV'), aN: gl.getAttribLocation(prog, 'aN') };
-    Object.assign(R3, { canvas, gl, prog, loc, attr, tex: {} });
-    R3.meshes = { quad: mkQuad(), cube: mkCube(), cap: mkCap(64), side: mkSide(64) };
+    Object.assign(R3, { canvas, gl, prog, loc, attr, tex: {}, outW: w, outH: h });
+    R3.meshes = {
+      cube: mkCube(),
+      panel: mkSlab(D.panelW, D.panelH, D.panelT, D.cornerR, 0, 0, -D.panelT), // y ∈ [0,H], z ∈ [-T,0]
+      phone: mkSlab(D.phoneW, D.phoneH, D.phoneT, D.phoneR, D.phoneR, -D.phoneH / 2, -D.phoneT / 2),
+    };
     gl.enable(gl.DEPTH_TEST);
     gl.enable(gl.BLEND);
     gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
@@ -142,12 +144,6 @@
     gl.bindVertexArray(null);
     return { vao, n: pos.length / 3 };
   }
-  function mkQuad() {
-    const p = [-0.5, -0.5, 0, 0.5, -0.5, 0, 0.5, 0.5, 0, -0.5, -0.5, 0, 0.5, 0.5, 0, -0.5, 0.5, 0];
-    const uv = [0, 1, 1, 1, 1, 0, 0, 1, 1, 0, 0, 0];
-    const n = [0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1];
-    return mkMesh(p, uv, n);
-  }
   function mkCube() {
     const P = [], UV = [], N = [];
     const faces = [[[1, 0, 0], [0, 1, 0], [0, 0, 1]], [[-1, 0, 0], [0, 1, 0], [0, 0, -1]], [[0, 1, 0], [0, 0, 1], [1, 0, 0]],
@@ -159,24 +155,29 @@
     }
     return mkMesh(P, UV, N);
   }
-  function mkCap(seg) { // unit disc in XY plane, facing +z
-    const P = [], UV = [], N = [];
-    for (let i = 0; i < seg; i++) {
-      const a0 = (i / seg) * Math.PI * 2, a1 = ((i + 1) / seg) * Math.PI * 2;
-      const v = [[0, 0], [Math.cos(a0), Math.sin(a0)], [Math.cos(a1), Math.sin(a1)]];
-      for (const [x, y] of v) { P.push(x, y, 0); UV.push(0.5 + x * 0.5, 0.5 - y * 0.5); N.push(0, 0, 1); }
+  // Rounded-rectangle slab: W × H, thickness T. rTop / rBot are the corner radii
+  // at the top / bottom. y runs from y0 to y0+H, z from z0 (back) to z0+T (front).
+  // Returns three meshes: textured front, plain back, and lit side walls.
+  function mkSlab(W, H, T, rTop, rBot, y0, z0) {
+    const SEG = 18, pts = [];
+    const arc = (cx, cy, r, a0, a1) => { for (let i = 0; i <= SEG; i++) { const a = a0 + ((a1 - a0) * i) / SEG; pts.push([cx + r * Math.cos(a), cy + r * Math.sin(a)]); } };
+    const x0 = -W / 2, x1 = W / 2, yb = y0, yt = y0 + H;
+    // counter-clockwise outline
+    if (rBot > 0) arc(x1 - rBot, yb + rBot, rBot, -Math.PI / 2, 0); else pts.push([x1, yb]);
+    if (rTop > 0) arc(x1 - rTop, yt - rTop, rTop, 0, Math.PI / 2); else pts.push([x1, yt]);
+    if (rTop > 0) arc(x0 + rTop, yt - rTop, rTop, Math.PI / 2, Math.PI); else pts.push([x0, yt]);
+    if (rBot > 0) arc(x0 + rBot, yb + rBot, rBot, Math.PI, 1.5 * Math.PI); else pts.push([x0, yb]);
+    const uvOf = (p) => [(p[0] - x0) / W, 1 - (p[1] - yb) / H];
+    const cx = 0, cy = y0 + H / 2, zf = z0 + T, zb = z0;
+    const F = { P: [], U: [], N: [] }, B = { P: [], U: [], N: [] }, S = { P: [], U: [], N: [] };
+    for (let i = 0; i < pts.length; i++) {
+      const a = pts[i], b = pts[(i + 1) % pts.length];
+      for (const p of [[cx, cy], a, b]) { F.P.push(p[0], p[1], zf); F.U.push(...uvOf(p)); F.N.push(0, 0, 1); }
+      for (const p of [[cx, cy], b, a]) { B.P.push(p[0], p[1], zb); B.U.push(...uvOf(p)); B.N.push(0, 0, -1); }
+      const ex = b[0] - a[0], ey = b[1] - a[1], l = Math.hypot(ex, ey) || 1, nx = ey / l, ny = -ex / l;
+      for (const [p, z] of [[a, zb], [b, zb], [b, zf], [a, zb], [b, zf], [a, zf]]) { S.P.push(p[0], p[1], z); S.U.push(0, 0); S.N.push(nx, ny, 0); }
     }
-    return mkMesh(P, UV, N);
-  }
-  function mkSide(seg) { // unit cylinder side, z ∈ [-1, 0]
-    const P = [], UV = [], N = [];
-    for (let i = 0; i < seg; i++) {
-      const a0 = (i / seg) * Math.PI * 2, a1 = ((i + 1) / seg) * Math.PI * 2;
-      const c0 = Math.cos(a0), s0 = Math.sin(a0), c1 = Math.cos(a1), s1 = Math.sin(a1);
-      const q = [[c0, s0, 0], [c1, s1, 0], [c1, s1, -1], [c0, s0, 0], [c1, s1, -1], [c0, s0, -1]];
-      for (const p of q) { P.push(...p); UV.push(0, 0); N.push(p[0], p[1], 0); }
-    }
-    return mkMesh(P, UV, N);
+    return { front: mkMesh(F.P, F.U, F.N), back: mkMesh(B.P, B.U, B.N), side: mkMesh(S.P, S.U, S.N) };
   }
 
   R3.setTexture = function (name, source) {
@@ -192,37 +193,33 @@
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
     const ext = gl.getExtension('EXT_texture_filter_anisotropic');
-    if (ext) gl.texParameterf(gl.TEXTURE_2D, ext.TEXTURE_MAX_ANISOTROPY_EXT, 8);
+    if (ext) gl.texParameterf(gl.TEXTURE_2D, ext.TEXTURE_MAX_ANISOTROPY_EXT, 16);
   };
 
   // ── Placement helpers ─────────────────────────────────────────────────────
-  // World point at depth z that projects to screen (sx, sy) with default camera.
   R3.screenToWorld = function (sx, sy, z = 0) {
     const d = CAM.pos[2] - z;
     const k = d / (FPX * CAM.pos[2]);
     return [(sx - 960) * k, CAM.pos[1] - (sy - 540) * k, z];
   };
-
-  // Stand pose: {sx, sy (screen pos of base-front-centre at z=0), z, yaw, scale}
+  // Stand pose {sx, sy, yaw, scale}: (sx, sy) is where the front-bottom of the bend sits.
   R3.standMatrix = function (p) {
     const w = R3.screenToWorld(p.sx, p.sy, p.z || 0);
     return M.chain(M.T(w[0], w[1], w[2]), M.Ry(p.yaw || 0), M.S(p.scale || 1));
   };
-  // Bend geometry: the base centre-line runs front→back at y = T/2, then turns
-  // through (90° − tilt) around a centre of curvature into the leaning panel.
+  // Bend: the foot's centre-line runs from the back (z = -depth) forward to z = 0,
+  // then curls up through (90° + tilt) into the face, which leans backward.
   const BEND = (() => {
-    const T = D.panelT, R = D.bendR + T / 2, phi = Math.PI / 2 - D.tilt;
-    const c = [T / 2 + R, 0]; // (y, z)
-    const at = (th) => [c[0] - R * Math.cos(th), c[1] - R * Math.sin(th)];
+    const T = D.panelT, R = D.bendR + T / 2, phi = Math.PI / 2 + D.tilt;
+    const c = [T / 2 + R, 0]; // (y, z) centre of curvature
+    const at = (th) => [c[0] - R * Math.cos(th), c[1] + R * Math.sin(th)];
     return { R, phi, at, end: at(phi) };
   })();
   R3.BEND = BEND;
-  // Panel frame: origin on the printed (front) face at the panel's bottom edge.
+  // Panel frame: origin on the printed face at the bottom edge; +y up the face, +z out of the print.
   R3.panelMatrix = (Ms) => M.chain(Ms, M.T(0, BEND.end[0], BEND.end[1]), M.Rx(-D.tilt), M.T(0, 0, D.panelT / 2));
-  R3.badgeWorld = function (p, extraZ = 0) {
-    const Mp = R3.panelMatrix(R3.standMatrix(p));
-    return M.apply(Mp, [0, D.badgeY, D.badgeT + extraZ]).slice(0, 3);
-  };
+  R3.panelPoint = (p, local) => M.apply(R3.panelMatrix(R3.standMatrix(p)), local).slice(0, 3);
+  R3.badgeWorld = (p) => R3.panelPoint(p, [0, D.badgeY, 0]);
   R3.standNormal = function (p) {
     const Mp = R3.panelMatrix(R3.standMatrix(p));
     const a = M.apply(Mp, [0, 0, 0]), b = M.apply(Mp, [0, 0, 1]);
@@ -232,7 +229,6 @@
   R3.phoneMatrix = function (p) {
     return M.chain(M.T(p.x, p.y, p.z), M.Ry(p.yaw || 0), M.Rx(p.pitch || 0), M.Rz(p.roll || 0), M.S(p.scale || 1));
   };
-  // Phone face texture (u,v in 0..1) → world position
   R3.phoneUVWorld = function (p, u, v) {
     return M.apply(R3.phoneMatrix(p), [(u - 0.5) * D.phoneW, (0.5 - v) * D.phoneH, D.phoneT / 2]).slice(0, 3);
   };
@@ -256,10 +252,10 @@
     gl.uniform1i(L.uMode, mode);
     const c = opts.color || [1, 1, 1];
     gl.uniform4f(L.uColor, c[0], c[1], c[2], 1);
-    gl.uniform1f(L.uAlpha, opts.alpha == null ? 1 : opts.alpha);
     gl.uniform1f(L.uGlossPos, opts.glossPos || -5);
     gl.uniform1f(L.uGlossAmt, opts.glossAmt || 0);
     gl.uniform1f(L.uSheen, opts.sheen == null ? 1 : opts.sheen);
+    gl.uniform1f(L.uSpec, opts.spec == null ? 0.25 : opts.spec);
     gl.uniform1f(L.uReflOn, opts.refl ? 1 : 0);
     gl.uniform1f(L.uReflY, opts.reflY || 0);
     if (opts.tex) { gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, R3.tex[opts.tex]); gl.uniform1i(L.uTex, 0); }
@@ -267,51 +263,33 @@
     gl.drawArrays(gl.TRIANGLES, 0, mesh.n);
   }
 
+  const ACRYLIC = [0.96, 0.965, 0.975];
   function drawStand(Ms, s, refl) {
-    const ms = R3.meshes;
-    const o = { alpha: s.alpha == null ? 1 : s.alpha, refl: !!refl, reflY: s.reflY };
-    const acrylic = [0.95, 0.955, 0.965];
-    const T = D.panelT;
-    // Base plate (same sheet, same width as the panel)
-    draw(ms.cube, M.chain(Ms, M.T(0, T / 2, D.baseDepth / 2), M.S(D.panelW, T, D.baseDepth)), 2, Object.assign({ color: acrylic }, o));
-    // Rounded bend, built from short segments along the arc
-    const NB = 12, seg = (BEND.R * BEND.phi) / NB;
+    const ms = R3.meshes, T = D.panelT;
+    const o = { refl: !!refl, reflY: s.reflY };
+    // Foot: runs backward from the bend, same width as the face
+    draw(ms.cube, M.chain(Ms, M.T(0, T / 2, -D.footDepth / 2), M.S(D.panelW, T, D.footDepth)), 2, Object.assign({ color: ACRYLIC, spec: 0.2 }, o));
+    // Rounded bend at the front-bottom
+    const NB = 14, seg = (BEND.R * BEND.phi) / NB;
     for (let i = 0; i < NB; i++) {
       const th = ((i + 0.5) / NB) * BEND.phi, p = BEND.at(th);
-      draw(ms.cube, M.chain(Ms, M.T(0, p[0], p[1]), M.Rx(th - Math.PI / 2), M.S(D.panelW, seg * 1.08, T)), 2, Object.assign({ color: acrylic }, o));
+      draw(ms.cube, M.chain(Ms, M.T(0, p[0], p[1]), M.Rx(Math.PI / 2 - th), M.S(D.panelW, seg * 1.1, T)), 2, Object.assign({ color: ACRYLIC, spec: 0.2 }, o));
     }
+    // Face: white acrylic body + printed front
     const Mp = R3.panelMatrix(Ms);
-    const faceM = M.chain(Mp, M.T(0, D.panelH / 2, 0), M.S(D.panelW, D.panelH, 1));
-    // Extruded acrylic thickness (layers masked by the face silhouette)
-    const LAYERS = 10;
-    for (let i = LAYERS; i >= 1; i--) {
-      const z = -(D.panelT * i) / LAYERS;
-      const shade = i === LAYERS ? 0.93 : 0.97;
-      draw(ms.quad, M.chain(M.T(0, 0, 0), Mp, M.T(0, D.panelH / 2, z), M.S(D.panelW, D.panelH, 1)), 1,
-        Object.assign({ tex: 'stand', color: [acrylic[0] * shade, acrylic[1] * shade, acrylic[2] * shade] }, o));
-    }
-    // Printed face
-    draw(ms.quad, faceM, 0, Object.assign({ tex: 'stand', glossPos: s.glossPos, glossAmt: s.glossAmt, sheen: 1 }, o));
-    // Raised G badge
-    const Mb = M.chain(Mp, M.T(0, D.badgeY, D.badgeT));
-    draw(ms.side, M.chain(Mb, M.S(D.badgeR, D.badgeR, D.badgeT)), 2, Object.assign({ color: [0.9, 0.91, 0.93] }, o));
-    draw(ms.cap, M.chain(Mb, M.T(0, 0, 0.0002), M.S(D.badgeR, D.badgeR, 1)), 0, Object.assign({ tex: 'badge', glossPos: s.glossPos, glossAmt: s.glossAmt * 0.6, sheen: 0.4 }, o));
+    draw(ms.panel.side, Mp, 2, Object.assign({ color: ACRYLIC, spec: 0.35 }, o));
+    draw(ms.panel.back, Mp, 2, Object.assign({ color: [0.94, 0.945, 0.955], spec: 0.15 }, o));
+    draw(ms.panel.front, Mp, 0, Object.assign({ tex: 'stand', glossPos: s.glossPos, glossAmt: s.glossAmt, sheen: 1, spec: 0.12 }, o));
   }
 
   function drawPhone(p) {
-    const ms = R3.meshes;
-    const Mph = R3.phoneMatrix(p);
-    const o = { alpha: p.alpha == null ? 1 : p.alpha };
-    const LAYERS = 10;
-    for (let i = LAYERS; i >= 1; i--) {
-      const z = D.phoneT / 2 - (D.phoneT * i) / LAYERS;
-      const k = 0.75 + 0.25 * Math.sin((i / LAYERS) * Math.PI); // brushed rail highlight
-      draw(ms.quad, M.chain(Mph, M.T(0, 0, z), M.S(D.phoneW, D.phoneH, 1)), 1, Object.assign({ tex: 'phone', color: [0.36 * k, 0.38 * k, 0.42 * k] }, o));
-    }
-    draw(ms.quad, M.chain(Mph, M.T(0, 0, D.phoneT / 2), M.S(D.phoneW, D.phoneH, 1)), 0, Object.assign({ tex: 'phone', sheen: 0.5, glossPos: p.glossPos, glossAmt: p.glossAmt || 0 }, o));
+    const ms = R3.meshes, Mph = R3.phoneMatrix(p);
+    draw(ms.phone.side, Mph, 2, { color: [0.32, 0.33, 0.36], spec: 0.6 });
+    draw(ms.phone.back, Mph, 2, { color: [0.12, 0.125, 0.14], spec: 0.3 });
+    draw(ms.phone.front, Mph, 0, { tex: 'phone', sheen: 0.6, spec: 0.35, glossPos: p.glossPos, glossAmt: p.glossAmt || 0 });
   }
 
-  // scene: { cam, stand: {sx,sy,yaw,scale,alpha,glossPos,glossAmt} | null, phone: {...} | null }
+  // scene: { cam, stand: {sx,sy,yaw,scale,glossPos,glossAmt} | null, phone: {...} | null }
   R3.render = function (scene) {
     const gl = R3.gl, L = R3.loc;
     gl.viewport(0, 0, R3.canvas.width, R3.canvas.height);
@@ -320,21 +298,18 @@
     const { vp, eye } = R3.camera(scene.cam);
     gl.uniformMatrix4fv(L.uVP, false, vp);
     gl.uniform3f(L.uEye, eye[0], eye[1], eye[2]);
-    if (scene.stand && (scene.stand.alpha == null || scene.stand.alpha > 0.001)) {
-      const s = scene.stand;
-      const Ms = R3.standMatrix(s);
+    if (scene.stand) {
+      const s = scene.stand, Ms = R3.standMatrix(s);
       const baseY = M.apply(Ms, [0, 0, 0])[1];
-      // Floor reflection: mirror about the floor plane through the base.
       const mirror = M.chain(M.T(0, baseY, 0), M.S(1, -1, 1), M.T(0, -baseY, 0));
-      // Opaque, depth-tested pass (nearest surface wins) with the fade baked
-      // into colour+alpha, so stacked acrylic layers never accumulate.
+      // Opaque reflection pass (nearest surface wins), faded in the shader.
       gl.disable(gl.BLEND);
       drawStand(M.mul(mirror, Ms), Object.assign({}, s, { reflY: baseY }), true);
       gl.enable(gl.BLEND);
       gl.clear(gl.DEPTH_BUFFER_BIT);
       drawStand(Ms, s, false);
     }
-    if (scene.phone && (scene.phone.alpha == null || scene.phone.alpha > 0.001)) drawPhone(scene.phone);
+    if (scene.phone) drawPhone(scene.phone);
     return R3.canvas;
   };
 })();

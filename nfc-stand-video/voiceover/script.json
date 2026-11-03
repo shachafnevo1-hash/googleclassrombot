@@ -1,0 +1,12 @@
+{
+  "voice": "he-IL-HilaNeural",
+  "rate": "-8%",
+  "note": "Calm, soft female Hebrew narration. Each line is placed at time t (seconds). Put the audio for line N in voiceover/NN.mp3 or NN.wav (01, 02, ...).",
+  "lines": [
+    { "t": 0.35, "text": "להשאיר ביקורת בגוגל? ללקוחות זה פשוט מסובך מדי." },
+    { "t": 5.6,  "text": "עכשיו הם רק מצמידים את הטלפון למעמד," },
+    { "t": 7.9,  "text": "ודף הביקורת נפתח מיד." },
+    { "t": 12.25, "text": "יותר ביקורות, בלי שום מאמץ." },
+    { "t": 16.4, "text": "טאפ אחד, וזהו." }
+  ]
+}

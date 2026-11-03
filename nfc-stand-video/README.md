@@ -1,38 +1,42 @@
 # NFC Google Review Stand — product film
 
-An 18-second, 1920×1080, 60 fps motion-graphics product film for the NFC Google Review stand.
-Everything is drawn in code: the 3D acrylic stand and phone (WebGL2), the UI cards (Canvas 2D),
-and the music and sound effects (Web Audio `OfflineAudioContext`). No image or audio files are used.
+An 18-second, 1920×1080, 60 fps product film for the NFC Google Review stand.
+Everything is drawn in code: the 3D acrylic stand and phone (WebGL2), the Hebrew UI (Canvas 2D),
+and the music and sound effects (Web Audio). The only external media is optional voice-over audio.
 
 ## Run
 
 ```bash
-npm install            # fonts are already vendored in fonts/; Playwright must be available
-node tools/render.js video                  # → out/nfc-review-stand.mp4 (≈25 min on 4 cores)
-node tools/render.js stills 5.0,5.9,8.5,16.5  # → out/stills/*.png for inspection
-node tools/render.js audio                  # → out/soundtrack.wav
+npm install                                   # fonts are vendored in fonts/; Playwright must be available
+node tools/render.js video                    # → out/nfc-review-stand.mp4 (~20 min on 4 cores)
+node tools/render.js stills 4.9,6.5,10.6,17.5 # → out/stills/*.png for inspection
 ```
 
-To preview interactively with a scrubber and audio, serve the folder (e.g. `npx serve .`) and open `index.html`.
+## Adding the Hebrew narrator
 
-Render options: `--workers 3`, `--samples 4` (temporal sub-frames per output frame), `--from/--to` (frame range).
+The script and its timing are in `voiceover/script.json` (5 short lines, calm female voice).
+Any recording works: save line N as `voiceover/NN.mp3` or `voiceover/NN.wav` (`01` … `05`). Then run:
+
+```bash
+node tools/render.js mux     # re-mixes the audio into the existing MP4; the picture is not re-rendered
+```
+
+The voice is placed at each line's time, and the music automatically ducks underneath it.
+To generate the voice with Microsoft's free neural Hebrew voice (he-IL-HilaNeural, needs internet):
+
+```bash
+pip install edge-tts && python tools/voiceover.py && node tools/render.js mux
+```
 
 ## How it works
 
 | File | What it does |
 |---|---|
-| `src/timeline.js` | **The film.** `TL.frame(t)` draws a full frame as a pure function of `t`. Scene timing, poses (keyframes), headlines and cues are all here. |
-| `src/art.js` | Procedural artwork: the stand's printed face (Hebrew is set with `direction: 'rtl'`), the G badge, the phone screen, the search UI, review cards and the status bar. |
-| `src/gl3d.js` | Small WebGL2 renderer: the L-shaped acrylic stand with its thickness and raised G badge, the phone, the floor reflection and the gloss sweep. |
-| `src/audio.js` | Synthesized 120 BPM track (kick, hats, sub-bass, marimba plucks, pads) and SFX, timed from `TL.CUES`. |
-| `src/util.js` | Easing (cubic-bezier, critically damped springs), keyframes, and drawing helpers. |
-| `src/main.js` | Loads the fonts and exposes `window.seek(t)` and `window.renderFrame(i)`. `renderFrame` averages 4 sub-frames across a 180° shutter to create motion blur. |
-| `tools/render.js` | Headless Chromium renders disjoint frame ranges in parallel, pipes them to x264, concatenates the parts and muxes the AAC audio. |
+| `src/timeline.js` | **The film.** `TL.frame(t)` is a pure function of `t`. Scene timing, poses, Hebrew headlines and cue times are all here. |
+| `src/art.js` | The stand's printed face (matched to the real product photos, rendered at 2×), the phone screen, and the Hebrew RTL search, review dialog and review cards. |
+| `src/gl3d.js` | WebGL2 renderer. The stand is one sheet of 3 mm white acrylic bent into an L, with the foot running backward. The phone is at real scale (about 2 cm smaller than the stand). Both are rendered at 2× and downsampled. |
+| `src/audio.js` | A calm 120 BPM music bed plus minimal SFX: NFC chime with a short vibration, and soft clicks for the notification, the stars and Post. |
+| `src/util.js` | Easing, keyframes, drawing helpers, and the official Google "G" vector paths. |
+| `tools/render.js` | Parallel headless render, x264 encode, voice-over mix with ducking, and AAC mux. |
 
-Common edits:
-- **Text:** `HEADLINES` in `timeline.js`, and `Art.standFace()` for the Hebrew on the stand.
-- **Timing:** the `tin`/`tout` values and the `U.KF([...])` pose keyframes.
-- **Colours:** `U.C` in `util.js`.
-
-Fonts are Rubik (Hebrew and Latin) and Inter, under the SIL Open Font License (see `fonts/`).
-Business names, people and reviews shown in the film are fictional.
+Business names, people and reviews in the film are fictional. Fonts: Rubik, Open Sans and Inter (SIL OFL, see `fonts/`).

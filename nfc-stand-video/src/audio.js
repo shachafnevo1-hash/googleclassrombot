@@ -21,8 +21,8 @@
     master.gain.setValueAtTime(0.9, 17.2);
     master.gain.linearRampToValueAtTime(0.0, 18.0);
     master.connect(comp); comp.connect(ac.destination);
-    const music = ac.createGain(); music.gain.value = 0.85; music.connect(master);
-    const sfx = ac.createGain(); sfx.gain.value = 0.5; sfx.connect(master);
+    const music = ac.createGain(); music.gain.value = 0.7; music.connect(master);
+    const sfx = ac.createGain(); sfx.gain.value = 0.6; sfx.connect(master);
     // reverb
     const irLen = Math.round(SR * 2.4), ir = ac.createBuffer(2, irLen, SR);
     for (let c = 0; c < 2; c++) {
@@ -166,8 +166,31 @@
       const sv = ac.createGain(); sv.gain.value = 0.7; pn.connect(sv); sv.connect(verb);
     }
 
-    // ── Arrangement ─────────────────────────────────────────────────────────
-    // Grid offset 0.2 s puts downbeats on the pivot (4.2), groove (5.2) and brand hit (9.2).
+    // haptic buzz: a few short low pulses, like a phone's vibration motor
+    function haptic(t, g = 0.16) {
+      [0, 0.11].forEach((o) => {
+        const osc = ac.createOscillator(), a = ac.createGain(), f = ac.createBiquadFilter();
+        osc.type = 'square'; osc.frequency.value = 160;
+        f.type = 'lowpass'; f.frequency.value = 420;
+        a.gain.setValueAtTime(0.0001, t + o);
+        a.gain.linearRampToValueAtTime(g, t + o + 0.008);
+        a.gain.setValueAtTime(g, t + o + 0.06);
+        a.gain.exponentialRampToValueAtTime(0.0001, t + o + 0.085);
+        osc.connect(f); f.connect(a); a.connect(sfx); osc.start(t + o); osc.stop(t + o + 0.1);
+      });
+    }
+    function softClick(t, g = 0.1, f0 = 2400) {
+      const s = noise(t, 0.03), f = ac.createBiquadFilter(), a = ac.createGain();
+      f.type = 'bandpass'; f.frequency.value = f0; f.Q.value = 2.2;
+      env(a, t, 0.0006, g, 0.018);
+      s.connect(f); f.connect(a); a.connect(sfx);
+      const o = ac.createOscillator(), b = ac.createGain();
+      o.frequency.setValueAtTime(1400, t); o.frequency.exponentialRampToValueAtTime(700, t + 0.025);
+      env(b, t, 0.0006, g * 0.5, 0.03); o.connect(b); b.connect(sfx); o.start(t); o.stop(t + 0.05);
+    }
+
+    // ── Arrangement: calm, sparse bed under the narration ──────────────────
+    // 120 BPM grid offset so bars start at 0.2 s.
     const OFF = 0.2, BEAT = 0.5;
     const CH = {
       Am: { n: [57, 60, 64], r: 45, arp: [57, 60, 64, 69, 72, 69, 64, 60] },
@@ -176,86 +199,43 @@
       G: { n: [55, 59, 62, 66], r: 43, arp: [55, 59, 62, 67, 71, 67, 62, 59] },
     };
     const barChord = (k) => ['Am', 'Am', 'F', 'C', 'G', 'Am', 'F', 'C', 'G', 'C'][k + 1] || 'C';
-
-    // Pads per bar
     for (let k = -1; k <= 7; k++) {
-      const t0 = Math.max(0, OFF + k * 2), t1 = OFF + (k + 1) * 2;
-      const name = barChord(k);
-      if (t0 >= 15.8) break;
-      const end = Math.min(t1, 15.8);
-      if (t0 < 3.2) pad(t0, CH[name].n, end - t0, 0.022, 700, 0.3, 0.6);
-      else if (t0 < 4.2) pad(3.2, CH.F.n.map((m) => m - 12), 1.0, 0.03, 500, 0.2, 0.4);
-      else pad(t0, CH[name].n, end - t0, t0 >= 9.2 && t0 < 10.4 ? 0.05 : 0.038, t0 >= 9.2 ? 1700 : 1300, 0.25, 0.7);
+      const t0 = Math.max(0, OFF + k * 2), t1 = Math.min(OFF + (k + 1) * 2, TL.CUES.final);
+      if (t0 >= TL.CUES.final) break;
+      pad(t0, CH[barChord(k)].n, t1 - t0, t0 < 3.8 ? 0.02 : 0.03, t0 < 3.8 ? 700 : 1200, 0.3, 0.7);
     }
-
-    // Beats
     for (let i = 0; ; i++) {
-      const t = OFF + i * BEAT - 0.5; // includes a pickup at -0.3 → skip negatives
-      if (t >= 15.7) break;
+      const t = OFF + i * BEAT - 0.5;
+      if (t >= TL.CUES.final - 0.1) break;
       if (t < 0) continue;
-      const k = Math.floor((t - OFF) / 2);
-      const ch = CH[barChord(k)];
-      const beatInBar = Math.round(((t - OFF) / BEAT) % 4 + 4) % 4;
-      if (t < 3.2) {
-        // the old way: thin, tense pulse
-        if (beatInBar % 2 === 0) kick(t, 0.42);
-        hat(t + 0.25, 0.05, false, 0.25);
-        pluck(t + 0.25, ch.arp[(i * 3) % 8] - 12, 0.05, 0.2, -0.2);
-      } else if (t < 4.2) {
-        // drop-off: breathe out, only soft hats
-        hat(t + 0.25, 0.035, false, -0.2);
-      } else if (t < 5.2) {
-        // pivot: plucks rise, no kick yet
-        for (let e = 0; e < 2; e++) pluck(t + e * 0.25, ch.arp[(i * 2 + e) % 8], 0.07, 0.7, e ? 0.25 : -0.25);
-        hat(t + 0.25, 0.05, false, 0.2);
+      const k = Math.floor((t - OFF) / 2), ch = CH[barChord(k)];
+      const beat = Math.round(((t - OFF) / BEAT) % 4 + 4) % 4;
+      if (t < 3.8) {
+        hat(t + 0.25, 0.03, false, 0.2);
+        if (beat === 0) pluck(t, ch.arp[i % 8] - 12, 0.04, 0.2, -0.2);
       } else {
-        const build = t >= 11.3 && t < 11.8;
-        const thin = t >= 14.6;
-        if (!build && !thin) kick(t, 0.8);
-        if (!thin) {
-          hat(t + 0.25, 0.08, beatInBar === 3, 0.22);
-          hat(t + 0.125, 0.025, false, -0.3); hat(t + 0.375, 0.025, false, -0.3);
-          if (beatInBar === 1 || beatInBar === 3) clap(t, build ? 0.12 : 0.18);
-        }
-        // sub-bass in eighths
-        bass(t, ch.r, 0.22, thin ? 0.22 : 0.34);
-        if (!thin) bass(t + 0.25, ch.r + (beatInBar === 3 ? 12 : 0), 0.2, 0.24);
-        // marimba-like plucks
-        for (let e = 0; e < 2; e++) pluck(t + e * 0.25, ch.arp[(i * 2 + e) % 8] + (t > 9.2 && t < 10.4 ? 12 : 0), thin ? 0.06 : 0.085, 0.9, e ? 0.3 : -0.3);
+        const groove = t >= 5.2 && t < 14.8;
+        if (groove && beat % 2 === 0) kick(t, 0.42);
+        hat(t + 0.25, 0.045, false, 0.22);
+        bass(t, ch.r, 0.4, 0.2);
+        pluck(t, ch.arp[(i * 2) % 8], 0.05, 0.6, -0.3);
+        pluck(t + 0.25, ch.arp[(i * 2 + 1) % 8], 0.04, 0.6, 0.3);
       }
     }
 
-    // ── SFX ─────────────────────────────────────────────────────────────────
-    TL.typeTimes().forEach((tt) => keyTick(tt, 0.07));
-    TL.CUES.taps.forEach((tt) => uiTap(tt, 0.13));
-    whoosh(3.7, 0.5, 400, 3200, 0.07);       // reverse swell into the pivot
-    impact(4.2, 0.32);
-    whoosh(4.36, 0.75, 2400, 500, 0.05);     // stand rises
-    whoosh(5.3, 0.5, 900, 2600, 0.045);      // phone glides in
-    // NFC tap: soft contact + crisp double chime
-    (() => {
-      const t = TL.CUES.nfc;
-      const o = ac.createOscillator(), a = ac.createGain();
-      o.frequency.setValueAtTime(220, t); o.frequency.exponentialRampToValueAtTime(120, t + 0.06);
-      env(a, t, 0.001, 0.22, 0.08); o.connect(a); a.connect(sfx); o.start(t); o.stop(t + 0.15);
-      chime(t + 0.005, 88, 0.2, -0.1);
-      chime(t + 0.095, 95, 0.17, 0.1);
-    })();
-    whoosh(6.6, 0.3, 1500, 4200, 0.04);      // banner slides in
-    // five ascending star sparkles (G major, matching the bar)
-    [79, 83, 86, 91, 95].forEach((m, i) => sparkle(TL.CUES.stars[i], m, 0.14, -0.4 + i * 0.2));
-    impact(9.2, 0.34);                        // brand transformation
-    whoosh(9.18, 0.45, 600, 5000, 0.05);
-    whoosh(10.9, 0.88, 300, 6000, 0.09);     // dramatic zoom riser
-    impact(11.8, 0.3);
-    whoosh(14.55, 0.6, 3000, 600, 0.05);     // cards converge
-    // Final resolve at 15.8: warm Cmaj9 + low C + bell
+    // ── Minimal SFX ─────────────────────────────────────────────────────────
+    // NFC contact: tiny chime + short vibration
+    chime(TL.CUES.nfc + 0.005, 88, 0.12, -0.1);
+    chime(TL.CUES.nfc + 0.1, 95, 0.1, 0.1);
+    haptic(TL.CUES.nfc + 0.02, 0.18);
+    softClick(TL.CUES.notify, 0.08, 3000);       // notification arrives
+    TL.CUES.stars.forEach((tt, i) => softClick(tt, 0.06, 2600 + i * 250)); // each star
+    softClick(TL.CUES.post, 0.11, 2200);         // Post
+    // Final: warm resolving chord
     const tf = TL.CUES.final;
-    pad(tf, [48, 55, 64, 71, 74], 1.4, 0.06, 1500, 0.08, 0.9);
-    bass(tf, 36, 1.8, 0.4);
-    impact(tf, 0.22);
-    [60, 64, 67, 71, 74].forEach((m, i) => pluck(tf + 0.04 + i * 0.07, m + 12, 0.06, 0.8, -0.3 + i * 0.15));
-    chime(tf + 0.02, 84, 0.1);
+    pad(tf, [48, 55, 64, 71, 74], 1.2, 0.05, 1400, 0.1, 0.7);
+    bass(tf, 36, 1.4, 0.3);
+    [60, 64, 67, 71, 74].forEach((m, i) => pluck(tf + 0.04 + i * 0.08, m + 12, 0.045, 0.7, -0.3 + i * 0.15));
 
     return ac.startRendering();
   }

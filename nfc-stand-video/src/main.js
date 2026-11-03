@@ -9,7 +9,7 @@
   const HEB = 'U+0307-0308, U+0590-05FF, U+200C-2010, U+20AA, U+25CC, U+FB1D-FB4F';
   const LAT = 'U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD';
   const faces = [];
-  for (const w of [400, 500, 700, 800]) for (const [s, r] of [['hebrew', HEB], ['latin', LAT]])
+  for (const w of [400, 500, 600, 700, 800]) for (const [s, r] of [['hebrew', HEB], ['latin', LAT]])
     faces.push(new FontFace('Rubik', `url(fonts/rubik-${s}-${w}-normal.woff2)`, { weight: String(w), style: 'normal', unicodeRange: r }));
   for (const w of [700, 800]) for (const [s, r] of [['hebrew', HEB], ['latin', LAT]])
     faces.push(new FontFace('Rubik', `url(fonts/rubik-${s}-${w}-italic.woff2)`, { weight: String(w), style: 'italic', unicodeRange: r }));
