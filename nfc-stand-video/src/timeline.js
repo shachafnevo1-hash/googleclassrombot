@@ -360,6 +360,16 @@
     U.maskLine(ctx, [['Instant ', C.blue], ['5-Star', C.gold], [' Reviews.', C.blue]], X, 690, { size: 46, weight: 600, align: 'left', ls: -0.8, family: 'Inter' }, E.out(prog(t, 16.78, 17.4)));
   }
 
+  // Debug/inspection: draw only the stand in an arbitrary pose (used by tools/render.js poses).
+  TL.debugStand = function (p) {
+    ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = 1;
+    ctx.fillStyle = '#E9E4DA'; ctx.fillRect(0, 0, U.W, U.H);
+    const pose = Object.assign({ sx: 960, sy: 900, scale: 1.25, yaw: 0, glossAmt: 0 }, p);
+    pose.yaw = pose.yaw * DEG;
+    const glc = R3.render({ stand: pose, phone: null, cam: p.cam });
+    ctx.drawImage(glc, 0, 0, U.W, U.H);
+  };
+
   // ── Frame ─────────────────────────────────────────────────────────────────
   TL.frame = function (t) {
     t = clamp(t, 0, TL.DURATION - 1e-6);

@@ -92,6 +92,15 @@ async function write(stream, buf) { if (!stream.write(buf)) await new Promise((r
         fs.writeFileSync(file, decode(url));
         console.log('wrote', file);
       }
+    } else if (mode === 'poses') {
+      // Inspect the stand from several angles: node tools/render.js poses
+      const out = path.resolve(ROOT, opt('out', 'out/poses')); fs.mkdirSync(out, { recursive: true });
+      const page = await openPage(browser, port);
+      const poses = { front: { yaw: 0 }, three_quarter: { yaw: 35 }, side: { yaw: 88, sx: 1000 }, back: { yaw: 155 }, high: { yaw: 25, cam: { pos: [0.3, 1.4, 1.9], target: [0, 0.25, -0.1], fov: 0.5236 } } };
+      for (const [k, p] of Object.entries(poses)) {
+        const url = await page.evaluate((p) => { TL.debugStand(p); return document.getElementById('c').toDataURL('image/png'); }, p);
+        fs.writeFileSync(path.join(out, k + '.png'), decode(url)); console.log('wrote', k);
+      }
     } else if (mode === 'audio') {
       const page = await openPage(browser, port);
       const b64 = await page.evaluate(() => window.Soundtrack.wavBase64());

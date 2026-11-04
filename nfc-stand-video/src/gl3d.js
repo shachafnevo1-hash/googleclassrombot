@@ -48,9 +48,9 @@
   // Stand face ≈ 15.5 × 10.2 cm, 3 mm acrylic. Phone ≈ 2 cm shorter / narrower.
   const panelH = 0.62, panelW = panelH * (920 / 1400);
   const D = {
-    panelW, panelH, panelT: 0.012, tilt: (14 * Math.PI) / 180, cornerR: panelW * (46 / 920),
-    footDepth: 0.26, bendR: 0.014,
-    badgeY: panelH * (1 - 0.528),
+    panelW, panelH, panelT: 0.012, tilt: (16 * Math.PI) / 180, cornerR: panelW * (46 / 920),
+    footDepth: 0.27, bendR: 0.01, footR: 0.03,
+    badgeY: panelH * (1 - 0.552),
     phoneH: panelH * 0.88, phoneW: panelH * 0.88 * (840 / 1600), phoneT: 0.03,
   };
   D.phoneR = D.phoneW * (118 / 840);
@@ -87,7 +87,7 @@
       rgb += (sheen + band + spec*uSpec) * c.a;
       c = vec4(rgb, c.a);
     } else { // lit solid (acrylic edges, phone frame)
-      vec3 rgb = uColor.rgb*(0.8+0.2*ndl) + vec3(spec*uSpec);
+      vec3 rgb = uColor.rgb*(0.86+0.14*ndl) + vec3(spec*uSpec);
       c = vec4(rgb, 1.0);
     }
     float a = 1.0;
@@ -122,6 +122,7 @@
     R3.meshes = {
       cube: mkCube(),
       panel: mkSlab(D.panelW, D.panelH, D.panelT, D.cornerR, 0, 0, -D.panelT), // y ∈ [0,H], z ∈ [-T,0]
+      foot: mkSlab(D.panelW, D.footDepth, D.panelT, D.footR, 0, 0, -D.panelT / 2), // rounded at the back
       phone: mkSlab(D.phoneW, D.phoneH, D.phoneT, D.phoneR, D.phoneR, -D.phoneH / 2, -D.phoneT / 2),
     };
     gl.enable(gl.DEPTH_TEST);
@@ -268,9 +269,10 @@
     const ms = R3.meshes, T = D.panelT;
     const o = { refl: !!refl, reflY: s.reflY };
     // Foot: runs backward from the bend, same width as the face
-    draw(ms.cube, M.chain(Ms, M.T(0, T / 2, -D.footDepth / 2), M.S(D.panelW, T, D.footDepth)), 2, Object.assign({ color: ACRYLIC, spec: 0.2 }, o));
+    const Mf = M.chain(Ms, M.T(0, T / 2, 0), M.Rx(-Math.PI / 2)); // slab y → backward (-z), slab z → up
+    for (const k of ['front', 'back', 'side']) draw(ms.foot[k], Mf, 2, Object.assign({ color: ACRYLIC, spec: 0.2 }, o));
     // Rounded bend at the front-bottom
-    const NB = 14, seg = (BEND.R * BEND.phi) / NB;
+    const NB = 32, seg = (BEND.R * BEND.phi) / NB;
     for (let i = 0; i < NB; i++) {
       const th = ((i + 0.5) / NB) * BEND.phi, p = BEND.at(th);
       draw(ms.cube, M.chain(Ms, M.T(0, p[0], p[1]), M.Rx(Math.PI / 2 - th), M.S(D.panelW, seg * 1.1, T)), 2, Object.assign({ color: ACRYLIC, spec: 0.2 }, o));

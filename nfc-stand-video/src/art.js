@@ -21,7 +21,7 @@
   // Matched to the real product photos: satin indigo-navy print, small orange
   // stars, Open Sans Hebrew headline, thin light-blue wave band, printed white
   // G disc with a soft shadow, regular/bold mixed body line, thin grey NFC icon.
-  A.STAND_LAYOUT = { badgeV: 0.528, badgeR: 0.122 }; // fractions of H / W
+  A.STAND_LAYOUT = { badgeV: 0.552, badgeR: 0.145 }; // fractions of H / W
   A.standFace = function () {
     const W = 920, H = 1400, R = 46, K = 2;
     const cv = A.canvas(W * K, H * K), x = cv.getContext('2d');
@@ -33,61 +33,77 @@
     x.fillStyle = '#FFFFFF';
     x.fillRect(0, 0, W, H);
 
-    // wave: high on the left, dipping under the G disc, lower on the right
+    // wave (measured from the real print): rises from the left edge toward the
+    // G disc, then descends to the right. Navy above, a bright blue band, white below.
+    const WV = (k) => {
+      const p = (x, y) => [x * W, y * H + k];
+      return { a: p(0, 0.536), c1: p(0.18, 0.528), c2: p(0.3, 0.508), m: p(0.5, 0.53), c3: p(0.68, 0.55), c4: p(0.82, 0.585), e: p(1, 0.593) };
+    };
     const wavePath = (ctx, k, close) => {
-      const y0 = H * 0.497 + k, y2 = H * 0.534 + k, y3 = H * 0.556 + k, y1 = H * 0.522 + k;
-      if (close) { ctx.moveTo(-2, -2); ctx.lineTo(W + 2, -2); ctx.lineTo(W + 2, y3); }
-      else ctx.moveTo(W + 2, y3);
-      ctx.bezierCurveTo(W * 0.78, y3 + 2, W * 0.66, y2 - 4, W * 0.5, y2 - 6);
-      ctx.bezierCurveTo(W * 0.3, y1 - 6, W * 0.18, y0 - 2, -2, y0);
+      const w = WV(k);
+      if (close) { ctx.moveTo(-2, -2); ctx.lineTo(W + 2, -2); ctx.lineTo(W + 2, w.e[1]); }
+      else ctx.moveTo(W + 2, w.e[1]);
+      ctx.bezierCurveTo(w.c4[0], w.c4[1], w.c3[0], w.c3[1], w.m[0], w.m[1]);
+      ctx.bezierCurveTo(w.c2[0], w.c2[1], w.c1[0], w.c1[1], -2, w.a[1]);
       if (close) ctx.closePath();
     };
-    // light-blue band
-    x.beginPath(); wavePath(x, 22, true);
+    const band = H * 0.0145;
+    x.beginPath(); wavePath(x, band, true);
     let g = x.createLinearGradient(0, 0, W, 0);
-    g.addColorStop(0, '#5B97DE'); g.addColorStop(0.5, '#4486D8'); g.addColorStop(1, '#3373CC');
+    g.addColorStop(0, '#3C84DE'); g.addColorStop(0.5, '#2F76D6'); g.addColorStop(1, '#2A6DCC');
     x.fillStyle = g; x.fill();
-    // navy print
     x.beginPath(); wavePath(x, 0, true);
-    g = x.createLinearGradient(0, 0, W * 0.25, H * 0.56);
-    g.addColorStop(0, '#25287C'); g.addColorStop(0.55, '#1F2167'); g.addColorStop(1, '#1B1C59');
+    g = x.createLinearGradient(0, 0, W * 0.3, H * 0.6);
+    g.addColorStop(0, '#2B2E8E'); g.addColorStop(0.5, '#24277C'); g.addColorStop(1, '#1E206C');
     x.fillStyle = g; x.fill();
 
     // small orange stars
-    for (let i = 0; i < 5; i++) U.star(x, W / 2 + (i - 2) * 52, H * 0.107, 15, 1, '#F2701F');
+    for (let i = 0; i < 5; i++) U.star(x, W / 2 + (i - 2) * W * 0.076, H * 0.125, W * 0.022, 1, '#F2804A');
 
-    // headline (Open Sans bold italic, white), RTL paragraph
-    const head = { size: 118, weight: 700, family: 'Open Sans', italic: true, color: '#FFFFFF', align: 'center', dir: 'rtl', ls: 0 };
-    U.text(x, 'Tap אחד', W / 2, H * 0.236, head);
-    U.text(x, 'ושימו דירוג!', W / 2, H * 0.33, head);
+    // headline (measured): upright semi-bold Hebrew, only "Tap" in italic
+    const hb = { size: 100, weight: 700, family: 'Open Sans', color: '#FFFFFF', dir: 'rtl', align: 'right' };
+    const hs = (100 * W * 0.63) / U.measure(x, 'ושימו דירוג!', hb);
+    const H1 = Object.assign({}, hb, { size: hs }), T1 = Object.assign({}, H1, { italic: true, dir: 'ltr' });
+    const wTap = U.measure(x, 'Tap', T1), wSp = U.measure(x, ' ', H1), wHe = U.measure(x, 'אחד', H1);
+    const r1 = W / 2 + (wTap + wSp + wHe) / 2;
+    U.text(x, 'Tap', r1, H * 0.254, Object.assign({}, T1, { align: 'right' }));
+    U.text(x, 'אחד', r1 - wTap - wSp, H * 0.254, H1);
+    U.text(x, 'ושימו דירוג!', W / 2, H * 0.355, Object.assign({}, H1, { align: 'center' }));
 
-    // printed G disc: white, hairline edge, soft shadow below (like the real print)
+    // printed G disc: white, hairline grey edge, darker printed drop shadow below
     const bY = H * A.STAND_LAYOUT.badgeV, bR = W * A.STAND_LAYOUT.badgeR;
     x.save();
-    x.shadowColor = 'rgba(10,12,40,0.24)'; x.shadowBlur = 18; x.shadowOffsetY = 6;
+    x.shadowColor = 'rgba(20,20,30,0.55)'; x.shadowBlur = bR * 0.16; x.shadowOffsetY = bR * 0.09;
     x.beginPath(); x.arc(W / 2, bY, bR, 0, PI * 2); x.fillStyle = '#FFFFFF'; x.fill();
     x.restore();
-    x.beginPath(); x.arc(W / 2, bY, bR - 0.75, 0, PI * 2); x.strokeStyle = 'rgba(0,0,0,0.07)'; x.lineWidth = 1.5; x.stroke();
-    U.gLogo(x, W / 2, bY, bR * 0.64);
+    const dg = x.createRadialGradient(W / 2, bY - bR * 0.3, bR * 0.2, W / 2, bY, bR);
+    dg.addColorStop(0, '#FFFFFF'); dg.addColorStop(0.85, '#FAFAFA'); dg.addColorStop(1, '#EDEDED');
+    x.beginPath(); x.arc(W / 2, bY, bR, 0, PI * 2); x.fillStyle = dg; x.fill();
+    x.beginPath(); x.arc(W / 2, bY, bR - 1, 0, PI * 2); x.strokeStyle = 'rgba(0,0,0,0.12)'; x.lineWidth = 2; x.stroke();
+    U.gLogo(x, W / 2, bY, bR * 0.74);
 
-    // body line: grey regular with bold "להצמיד" and "זהו!", laid out right → left
+    // body line: grey regular with bold "להצמיד" and "זהו!", right → left, measured width
     const segs = [['פשוט רק ', 400], ['להצמיד', 700], [' את הטלפון, ', 400], ['זהו!', 700]];
-    const base = { size: 57, family: 'Open Sans', color: '#2E2F33', dir: 'rtl', align: 'right' };
+    const base0 = { size: 100, family: 'Open Sans', color: '#2A2B30', dir: 'rtl', align: 'right' };
+    const w0 = segs.reduce((acc, [t, w]) => acc + U.measure(x, t, Object.assign({}, base0, { weight: w })), 0);
+    const base = Object.assign({}, base0, { size: (100 * W * 0.84) / w0 });
     const ws = segs.map(([t, w]) => U.measure(x, t, Object.assign({}, base, { weight: w })));
     const tot = ws.reduce((a, b) => a + b, 0);
     let rx = W / 2 + tot / 2;
-    segs.forEach(([t, w], i) => { U.text(x, t, rx, H * 0.705, Object.assign({}, base, { weight: w })); rx -= ws[i]; });
+    segs.forEach(([t, w], i) => { U.text(x, t, rx, H * 0.742, Object.assign({}, base, { weight: w })); rx -= ws[i]; });
 
-    // NFC pictogram: [NFC] tag + two arcs + phone outline, thin grey strokes
+    // NFC pictogram (measured): [NFC] tag, two arcs, phone outline; thin dark strokes
     x.save();
-    const ink = '#3A3B40', cy = H * 0.872;
-    x.translate(W / 2, cy); x.scale(1.2, 1.2); x.translate(-W / 2 - 3, -cy);
-    x.strokeStyle = ink; x.lineWidth = 6; x.lineJoin = 'round'; x.lineCap = 'round';
-    U.rr(x, 316, cy - 26, 100, 52, 14); x.stroke();
-    U.text(x, 'NFC', 366, cy + 2, { size: 30, weight: 700, family: 'Open Sans', color: ink, align: 'center', baseline: 'middle' });
-    for (let i = 0; i < 2; i++) { x.beginPath(); x.arc(432 + i * 2, cy, 22 + i * 20, -0.9, 0.9); x.stroke(); }
-    U.rr(x, 500, cy - 88, 98, 176, 18); x.stroke();
-    U.rr(x, 530, cy - 74, 38, 8, 4); x.fillStyle = ink; x.fill();
+    const ink = '#2E2F33', cy = H * 0.863, ph = H * 0.121, pw = W * 0.118;
+    x.strokeStyle = ink; x.lineWidth = W * 0.0075; x.lineJoin = 'round'; x.lineCap = 'round';
+    const tx = W / 2 - W * 0.072, tw = W * 0.106, th = W * 0.06;
+    U.rr(x, tx - tw / 2, cy - th / 2, tw, th, th * 0.28); x.stroke();
+    U.text(x, 'NFC', tx, cy + 1, { size: th * 0.55, weight: 700, family: 'Open Sans', color: ink, align: 'center', baseline: 'middle' });
+    const ax = W / 2 + W * 0.012;
+    for (let i = 0; i < 2; i++) { x.beginPath(); x.arc(ax - W * 0.03 + i * 2, cy, W * (0.022 + i * 0.022), -0.85, 0.85); x.stroke(); }
+    const px = W / 2 + W * 0.134;
+    U.rr(x, px - pw / 2, cy - ph / 2, pw, ph, pw * 0.2); x.stroke();
+    U.rr(x, px - pw * 0.2, cy - ph / 2 + ph * 0.08, pw * 0.4, ph * 0.04, ph * 0.02); x.fillStyle = ink; x.fill();
     x.restore();
     x.restore();
     return cv;
