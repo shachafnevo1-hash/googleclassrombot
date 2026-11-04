@@ -223,11 +223,14 @@
     }
 
     // ── SFX (minimal) ───────────────────────────────────────────────────────
-    pop(CUES.pin, 84, 0.14);                                  // map pin lands
-    whoosh(CUES.dive, 0.8, 2400, 500, 0.045);                  // dive into the city
+    pop(CUES.card, 84, 0.13);                                  // the café's Google card pops in
+    [72, 69].forEach((m, i) => pluck(CUES.why + i * 0.12, m, 0.05, 0.25)); // "so why 2.7?"
+    whoosh(CUES.dive, 0.9, 2400, 500, 0.045);                  // the card lands, dive into the city
     softClick(CUES.bakeryIn, 0.07, 3000);                      // into the bakery
-    pop(CUES.smile, 88, 0.1);                                  // happy bubble
-    [76, 72].forEach((m, i) => pluck(CUES.sad + i * 0.14, m, 0.06, 0.3)); // … but no review
+    CUES.exits.forEach((e, i) => softClick(e + 0.05, 0.05, 2600 - i * 200)); // customers walk out
+    pop(CUES.zero, 80, 0.08);                                  // "+0 new reviews"
+    [76, 72].forEach((m, i) => pluck(CUES.exits[2] + 0.12 + i * 0.14, m, 0.05, 0.3)); // … still +0
+    whoosh(5.95, 1.2, 500, 2200, 0.04);                        // swoop down to the café
     whoosh(CUES.cafeDoor - 0.25, 0.4, 600, 2600, 0.04);        // through the café door
     chime(CUES.tap + 0.005, 88, 0.12, -0.1); chime(CUES.tap + 0.1, 95, 0.1, 0.1); haptic(CUES.tap + 0.02, 0.18);
     [79, 83, 86, 91, 95].forEach((m, i) => sparkle(CUES.stars[i], m, 0.11, -0.4 + i * 0.2));

@@ -8,6 +8,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 import * as THREE from '../node_modules/three/build/three.module.js';
 import { mergeGeometries } from '../node_modules/three/examples/jsm/utils/BufferGeometryUtils.js';
+import { storeFront } from './storefront.js';
 
 const rngOf = (seed) => () => {
   seed = (seed + 0x6d2b79f5) | 0;
@@ -212,7 +213,6 @@ export function buildCity(opts = {}) {
 
   // hero street buildings (west block = generic shops, east block = our two stores)
   const stores = opts.stores || [];
-  const signs = {};
   for (const hm of heroMeshes) {
     const st = stores.find((s) => s.slot === hm.slot);
     const pastel = C.bld[(hm.slot * 5 + 2) % C.bld.length];
@@ -221,21 +221,11 @@ export function buildCity(opts = {}) {
     upper.castShadow = upper.receiveShadow = true; g.add(upper);
     const base = new THREE.Mesh(box, flat(st ? st.color : pastel)); base.scale.set(hm.w - 0.2, 3.6, hm.d); base.position.set(hm.x, 0.18, hm.z);
     base.castShadow = base.receiveShadow = true; g.add(base);
-    const fz = hm.front + 0.02;
-    const glass = new THREE.Mesh(new THREE.PlaneGeometry(hm.w - 2.4, 2.3), new THREE.MeshStandardMaterial({ color: st ? 0x5f6f84 : 0x8a95a3, roughness: 0.15, metalness: 0.15, emissive: 0xffd7a0, emissiveIntensity: st ? 0.24 : 0.0 }));
-    glass.position.set(hm.x, 1.55, fz); g.add(glass);
-    const sg = signs[hm.slot];
-    if (st) {
-      const awn = new THREE.Mesh(new THREE.BoxGeometry(hm.w - 1.2, 0.2, 1.6), flat(st.awning)); awn.position.set(hm.x, 3.0, fz + 0.8); awn.castShadow = true; g.add(awn);
-    } else {
-      const lintel = new THREE.Mesh(new THREE.BoxGeometry(hm.w - 1.6, 0.18, 0.5), flat(0xd7dbe1)); lintel.position.set(hm.x, 2.95, fz + 0.25); lintel.castShadow = true; g.add(lintel);
-    }
-    const label = st ? [st.name, st.signBg, st.signFg] : sg;
-    if (label) {
-      const sw = hm.w - 1.6;
-      const sign = new THREE.Mesh(new THREE.PlaneGeometry(sw, sw / 4), new THREE.MeshBasicMaterial({ map: signTex(label[0], label[1], label[2]) }));
-      sign.position.set(hm.x, 3.55 + sw / 8, fz + 0.01); g.add(sign);
-    }
+    // detailed street level: framed windows with a lit interior, door, awning, sign, planters;
+    // Café Limon also gets its terrace and balconies (see storefront.js)
+    const kind = st ? (st.id === 'cafe' ? 'cafe' : 'bakery') : 'plain';
+    const sf = storeFront(g, hm, kind, st);
+    if (kind === 'cafe') meta.cafeWindowMats = sf.windowMats;
     if (st) {
       meta.stores[st.id] = { door: new THREE.Vector3(hm.x, 0.2, hm.front), top: new THREE.Vector3(hm.x, hm.h + 1.5, hm.z), x: hm.x, h: hm.h };
     }

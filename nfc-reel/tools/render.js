@@ -28,7 +28,7 @@ async function openPage(browser, port) {
   const page = await browser.newPage({ viewport: { width: 1080, height: 1920 } });
   page.on('pageerror', (e) => console.error('[pageerror]', e.message));
   page.on('console', (m) => { if (m.type() === 'error') console.error('[console]', m.text()); });
-  await page.goto(`http://127.0.0.1:${port}/nfc-reel/reel.html?render`);
+  await page.goto(`http://127.0.0.1:${port}/nfc-reel/reel.html?render${opt('query', '') ? '&' + opt('query', '') : ''}`);
   await page.waitForFunction(() => window.ready === true, null, { timeout: 180000 });
   return page;
 }
@@ -83,7 +83,7 @@ const write = async (s, b) => { if (!s.write(b)) await new Promise((r) => s.once
       }));
       const list = path.join(tmp, 'list.txt');
       fs.writeFileSync(list, segs.filter(Boolean).map((s) => `file '${s}'`).join('\n'));
-      const mux = ffmpeg(['-y', '-loglevel', 'error', '-f', 'concat', '-safe', '0', '-i', list, '-i', wav, '-map', '0:v', '-map', '1:a',
+      const mux = ffmpeg(['-y', '-loglevel', 'error', '-f', 'concat', '-safe', '0', '-i', list, '-ss', String(first / FPS), '-i', wav, '-map', '0:v', '-map', '1:a',
         '-c:v', 'copy', '-af', 'volume=3.5dB,alimiter=limit=0.95', '-c:a', 'aac', '-b:a', '256k', '-ar', '48000', '-t', String(total / FPS), '-movflags', '+faststart', outFile]);
       mux.p.stdin.end(); await mux.done;
       console.log('wrote', outFile, `in ${((Date.now() - t0) / 1000).toFixed(0)}s`);
