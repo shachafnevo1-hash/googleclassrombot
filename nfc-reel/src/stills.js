@@ -126,6 +126,7 @@ async function main() {
 
   window.shot = async (n) => {
     ctx.clearRect(0, 0, W, H);
+    cam.near = 0.05; cam.far = 900; cam.updateProjectionMatrix();
     if (n === 1) {
       // Opening: aerial over the street, a customer (blue dot) walking past the bakery
       dot.position.set(A.door.x - 6, 0.2, -6); dot.rotation.y = Math.PI / 2;
@@ -143,14 +144,14 @@ async function main() {
       const pts = [start, [bak.x, HERO.walkZ], [bak.x, HERO.frontZ - 0.6]];
       const total = Math.abs(bak.x - start[0]) + Math.abs(HERO.frontZ - 0.6 - HERO.walkZ);
       const L = total * 0.68;
-      routeEdge.geometry = routeGeometry(pts, L, 4.2, 0.32);
-      routeFill.geometry = routeGeometry(pts, L, 3.0, 0.36);
+      routeEdge.geometry = routeGeometry(pts, L, 4.2, 0.3);
+      routeFill.geometry = routeGeometry(pts, L, 3.0, 0.45);
       cdot.position.set(start[0], 0.5, start[1]); cdot.rotation.y = Math.PI / 2;
       cm.setTraffic(2.5);
       const T = new THREE.Vector3(-12, 0, -22);
       sun2.position.set(T.x - 160, 260, T.z + 190); sun2.target.position.copy(T); sun2.target.updateMatrixWorld();
       sun2.shadow.camera.updateProjectionMatrix();
-      cam.fov = 40; cam.updateProjectionMatrix();
+      cam.fov = 40; cam.near = 3; cam.far = 1200; cam.updateProjectionMatrix();
       cam.position.set(T.x + 66, 216, T.z + 184); cam.lookAt(T);
       window.__scene = city; snap();
       placeLabel(...proj(bak.top, cam), 'מאפיית בוקר', 3.2, 31, false);
