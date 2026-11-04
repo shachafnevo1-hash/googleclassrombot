@@ -90,9 +90,9 @@ function drawEndPrint(c, a1 = 1, a2 = 1, a3 = 1) {
   U.text(x, 'תשלום חד-פעמי', c.width / 2, 735 + (1 - a3) * 30, po);
 }
 function setup() {
-  renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
+  renderer = new THREE.WebGLRenderer({ antialias: false, alpha: true, preserveDrawingBuffer: true });
   renderer.setPixelRatio(1.0); renderer.setSize(W, H, false); renderer.setClearColor(0x000000, 0);
-  renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap; renderer.shadowMap.autoUpdate = false;
   renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.0;
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   scene = new THREE.Scene();
@@ -164,6 +164,12 @@ function spotTex() {
 }
 
 // ── shots ────────────────────────────────────────────────────────────────────
+// TC: the frame's nominal time — screen/print content is evaluated once per frame (no
+// need to motion-blur UI), and canvases are only re-uploaded when their content changes.
+let TC = 0;
+const memo = {};
+const once = (id, key, fn) => { if (memo[id] !== key) { memo[id] = key; fn(); } };
+const phonePages = (pages) => once('phone', pages.map(([fn, o, dy = 0]) => fn.name + JSON.stringify(o, (k, v) => (typeof v === 'number' ? +v.toFixed(3) : v)) + Math.round(dy)).join('|'), () => drawPhone(P.phone, pages));
 // each returns { pos, tgt, fov, focus (distance), ap (lens radius, cm), mood, overlay(ctx) }
 function hideAll() {
   for (const k of ['stand', 'cup', 'flip', 'scissors', 'plate', 'bag', 'cup2', 'pad', 'lineIntro', 'linePhone', 'treeTrunk', 'tagline', 'croissant']) P[k].visible = false;
@@ -184,7 +190,7 @@ function phonePoseTap(t, cpos, ctgt) {
   const fwd = V3(0, 0, -1).applyQuaternion(cq), up = V3(0, 1, 0).applyQuaternion(cq), right = V3(1, 0, 0).applyQuaternion(cq);
   const startP = cpos.clone().addScaledVector(fwd, 30).addScaledVector(up, -24).addScaledVector(right, 15);
   const startQ = cq.clone().multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(0.75, 0.25, -0.45)));
-  const readP = cpos.clone().addScaledVector(fwd, 26).addScaledVector(up, -1.5), readQ = cq.clone();
+  const readP = cpos.clone().addScaledVector(fwd, 37).addScaledVector(up, -1.0), readQ = cq.clone();
   const a1 = E.out(prog(t, 7.45, 8.1)), a2 = E.inOut(prog(t, 8.1, CUES.tap)), a3 = E.inOut(prog(t, 8.85, 9.35));
   let p, q;
   if (t < 8.1) { p = startP.lerp(onStand(6), a1); q = startQ.slerp(pq, a1); }
@@ -193,8 +199,8 @@ function phonePoseTap(t, cpos, ctgt) {
     const hb = prog(t, CUES.tap, CUES.tap + 0.22); if (hb > 0 && hb < 1) p.addScaledVector(right, 0.06 * Math.sin(2 * Math.PI * 23 * (t - CUES.tap)) * Math.sin(Math.PI * hb));
   } else { p = onStand(0.02).lerp(readP, a3); p.addScaledVector(up, Math.sin(Math.PI * a3) * 2); q = pq.clone().slerp(readQ, a3); }
   ph.position.copy(p); ph.quaternion.copy(q);
-  const LH = phoneLH(), show = (1 - E.out(prog(t, CUES.tap + 0.06, CUES.tap + 0.36))) * LH;
-  drawPhone(P.phone, [[pageLock, { wake: 1 }, 0], [pageReview, { stars: 5 * E.out(prog(t, 9.0, 9.35)) }, show]]);
+  const LH = phoneLH(), show = (1 - E.out(prog(TC, CUES.tap + 0.06, CUES.tap + 0.36))) * LH;
+  phonePages([[pageLock, { wake: 1 }, 0], [pageReview, { stars: 5 * E.out(prog(TC, 9.0, 9.35)) }, show]]);
   // light spreading from the stand on contact
   P.ripples.forEach((r, k) => {
     const pr = prog(t, CUES.tap + k * 0.14, CUES.tap + k * 0.14 + 0.95);
@@ -220,7 +226,7 @@ const SHOTS = [
     P.stand.visible = true; P.stand.position.set(0, 0, 0); P.stand.rotation.y = -0.32;
     P.lineIntro.visible = true; const g = E.out(prog(t, 1.2, 2.3)); P.lineIntro.userData.grow(g);
     P.phone.g.visible = true; P.phone.g.position.set(24, 0.45, -62); P.phone.g.rotation.set(-Math.PI / 2, 0, 0.6);
-    drawPhone(P.phone, [[pageLock, { wake: 0.2 + 0.8 * E.out(prog(t, 2.16, 2.32)) }]]);
+    phonePages([[pageLock, { wake: 0.2 + 0.8 * E.out(prog(TC, 2.16, 2.32)) }]]);
     const crv = P.lineIntro.userData.curve, head = crv.getPointAt(Math.max(0.02, g)), back = crv.getPointAt(Math.max(0, g - 0.18));
     const w = E.in(prog(t, 2.24, 2.4));
     const pos = V3(back.x - 2, 19 + 4 * w, back.z + 26).add(shake(t, 0.12));
@@ -235,17 +241,17 @@ const SHOTS = [
     P.phone.g.rotation.set(lerp(-0.6, -0.2, r) + 0.06 * back, lerp(0.55, 0.2, r) - 0.12 * drift - 0.3 * back, lerp(0.1, 0.03, r));
     P.phone.g.updateMatrixWorld(true);
     const plug = P.phone.g.localToWorld(V3(0, -7.4, 0)); P.linePhone.position.copy(plug).sub(V3(0, -9.2, 0)); P.linePhone.userData.grow(1);
-    const LH = phoneLH(), slide = (1 - E.out(prog(t, 2.45, 2.85))) * LH, sw = E.inOut(prog(t, 4.0, 4.24)) * LH;
-    const stars = CUES.stars.reduce((n, s) => n + clamp((t - s) / 0.1), 0);
-    const k = E.inOut(prog(t, CUES.count[0], CUES.count[1]));
+    const LH = phoneLH(), slide = (1 - E.out(prog(TC, 2.45, 2.85))) * LH, sw = E.inOut(prog(TC, 4.0, 4.24)) * LH;
+    const stars = CUES.stars.reduce((n, s) => n + clamp((TC - s) / 0.1), 0);
+    const k = E.inOut(prog(TC, CUES.count[0], CUES.count[1]));
     const pages = [];
     if (slide > 1) pages.push([pageLock, { wake: 1 }, 0]);
     pages.push([pageReview, { stars }, slide - sw]);
-    if (sw > 1) pages.push([pageProfile, { rating: lerp(3.2, 4.9, k), count: lerp(38, 241, k), fresh: prog(t, 4.6, 4.95) + prog(t, 5.0, 5.35) }, LH - sw]);
-    drawPhone(P.phone, pages);
+    if (sw > 1) pages.push([pageProfile, { rating: lerp(3.2, 4.9, k), count: lerp(38, 241, k), fresh: prog(TC, 4.6, 4.95) + prog(TC, 5.0, 5.35) }, LH - sw]);
+    phonePages(pages);
     const u = prog(t, 2.4, 5.4);
     const pos = V3(lerp(4, 0, u), lerp(-2, 2, u), lerp(56, 54, u)).add(shake(t, 0.15));
-    const tgt = V3(-60 * E.in(prog(t, 5.15, 5.4)), lerp(0, 1, u), lerp(0, -6, back));
+    const tgt = V3(-22 * E.in(prog(t, 5.15, 5.4)), lerp(0, 1, u), lerp(0, -6, back));
     return { pos, tgt, fov: 30, focus: pos.distanceTo(P.phone.g.position), ap: 0.7, mood: 'void' };
   } },
   // 5 — mechanical review counter flips 038 → 241, star lamps light; focus breaks at the end
@@ -270,9 +276,11 @@ const SHOTS = [
     const tgt = V3(0, 6, 1);
     const fd = pos.distanceTo(V3(0, 7, 1));
     phonePoseTap(t, pos, tgt);
-    const dive = E.in(prog(t, 9.3, 9.6));
-    pos.lerp(V3(0, 10, 14), dive * 0.75);
-    return { pos, tgt, fov: 32, focus: lerp(fd, 20, dive), ap: 1.2, mood: 'cafe', fade: dive };
+    const dive = E.in(prog(t, 9.28, 9.6));
+    pos.lerp(tgt, dive * 0.04);
+    // focus follows the phone as it lifts toward the viewer
+    const focus = lerp(fd, pos.distanceTo(P.phone.g.position), E.inOut(prog(t, 8.8, 9.2)));
+    return { pos, tgt, fov: 32, focus, ap: 1.2, mood: 'cafe', fade: E.inOut(prog(t, 9.3, 9.56)) };
   } },
   // 7 — out of the dark: the line rises to the stand and branches to every kind of business
   { a: 9.6, b: 11.4, f(t) {
@@ -299,7 +307,8 @@ const SHOTS = [
   { a: 11.4, b: 13.8, f(t) {
     P.stand.visible = true; P.stand.position.set(0, 0, 0); P.stand.rotation.y = 0;
     P.cup.visible = true; P.cup.position.set(-22, 0, -10);
-    P.tagline.visible = true; P.tagline.userData.draw(prog(t, TYPE1[0], TYPE1[1]), prog(t, TYPE2[0], TYPE2[1]));
+    P.tagline.visible = true; const n1 = prog(TC, TYPE1[0], TYPE1[1]), n2 = prog(TC, TYPE2[0], TYPE2[1]);
+    once('tag', `${Math.round(n1 * 8)}/${Math.round(n2 * 13)}`, () => P.tagline.userData.draw(n1, n2));
     const u = E.out(prog(t, 11.4, 13.8)), w = E.in(prog(t, 13.62, 13.8));
     const pos = V3(0, lerp(46, 40, u) - 6 * w, lerp(92, 84, u) - 6 * w).add(shake(t, 0.15));
     const fd = pos.distanceTo(V3(0, 2, 8));
@@ -309,8 +318,8 @@ const SHOTS = [
   { a: 13.8, b: 17.01, f(t) {
     P.pad.visible = true; P.pad.position.set(0, 0, 0);
     P.stand.visible = true; P.stand.position.set(0, 1.2, -9); P.stand.rotation.y = 0;
-    drawEndPrint(P.endCanvas, E.out(prog(t, 14.05, 14.45)), E.out(prog(t, 14.3, 14.7)), E.out(prog(t, 14.55, 14.95)));
-    P.pad.userData.print.tex.needsUpdate = true;
+    const e1 = E.out(prog(TC, 14.05, 14.45)), e2 = E.out(prog(TC, 14.3, 14.7)), e3 = E.out(prog(TC, 14.55, 14.95));
+    once('end', [e1, e2, e3].map((v) => v.toFixed(3)).join(), () => { drawEndPrint(P.endCanvas, e1, e2, e3); P.pad.userData.print.tex.needsUpdate = true; });
     const u = E.out(prog(t, 13.8, 17.0)), arrive = 1 - E.out(prog(t, 13.8, 14.25));
     const pos = V3(0, lerp(80, 70, u) + 6 * arrive, lerp(88, 78, u) + 4 * arrive).add(shake(t, 0.1));
     return { pos, tgt: V3(0, 2 + 6 * arrive, 1), fov: 30, focus: pos.distanceTo(V3(0, 4, -6)), ap: 1.0, mood: 'cafe' };
@@ -332,19 +341,21 @@ function label(text, p, a) {
 
 // ── frame ────────────────────────────────────────────────────────────────────
 let curShot = null;
-function frame(t, lensK = [0, 0]) {
-  t = clamp(t, 0, DUR - 1e-4);
+function frame(t, lensK = [0, 0], tc = null, first = true, jit = [0, 0]) {
+  t = clamp(t, 0, DUR - 1e-4); TC = clamp(tc == null ? t : tc, 0, DUR - 1e-4);
+  if (first) renderer.shadowMap.needsUpdate = true;
   hideAll();
   const s = SHOTS.find((x) => t >= x.a && t < x.b) || SHOTS[SHOTS.length - 1];
   const c = s.f(t); curShot = c;
   cam.fov = c.fov; cam.position.copy(c.pos); cam.up.set(0, 1, 0); cam.lookAt(c.tgt); cam.updateMatrixWorld(); cam.updateProjectionMatrix();
   backdrop(c, c.mood);
   // thin lens: shift the eye on the aperture disc and shear the frustum so the focal plane stays put
-  if (c.ap) {
-    const dx = lensK[0] * c.ap, dy = lensK[1] * c.ap;
+  {
+    const dx = c.ap ? lensK[0] * c.ap : 0, dy = c.ap ? lensK[1] * c.ap : 0;
     const r = V3(1, 0, 0).applyQuaternion(cam.quaternion), u = V3(0, 1, 0).applyQuaternion(cam.quaternion);
     cam.position.addScaledVector(r, dx).addScaledVector(u, dy); cam.updateMatrixWorld();
-    const e = cam.projectionMatrix.elements; e[8] = (-e[0] * dx) / c.focus; e[9] = (-e[5] * dy) / c.focus;
+    const e = cam.projectionMatrix.elements;
+    e[8] = (-e[0] * dx) / c.focus + (jit[0] * 2) / W; e[9] = (-e[5] * dy) / c.focus + (jit[1] * 2) / H;
     cam.projectionMatrixInverse.copy(cam.projectionMatrix).invert();
   }
   renderer.render(scene, cam);
@@ -374,7 +385,9 @@ async function main() {
     for (let k = 0; k < n; k++) {
       // stratified shutter time + golden-angle lens disc, decorrelated by a stride
       const kt = (k * 7) % n, r = Math.sqrt((k + 0.5) / n), th = k * 2.399963;
-      frame((i + ((kt + 0.5) / n - 0.5) * shutter) / FPS, n > 1 ? [r * Math.cos(th), r * Math.sin(th)] : [0, 0]);
+      const halton = (j, b) => { let f = 1, v = 0; for (j += 1; j > 0; j = Math.floor(j / b)) { f /= b; v += f * (j % b); } return v; };
+      frame((i + ((kt + 0.5) / n - 0.5) * shutter) / FPS, n > 1 ? [r * Math.cos(th), r * Math.sin(th)] : [0, 0], i / FPS, k === 0,
+        n > 1 ? [halton(k, 2) - 0.5, halton(k, 3) - 0.5] : [0, 0]);
       const d = ctx.getImageData(0, 0, W, H).data;
       for (let j = 0; j < N; j++) acc[j] += d[j];
     }
