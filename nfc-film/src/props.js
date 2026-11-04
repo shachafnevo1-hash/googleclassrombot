@@ -216,3 +216,20 @@ export function feltPad(printCanvas) {
   }
   return g;
 }
+
+// ── croissant on a small plate (for the tap scene) ───────────────────────────
+export function croissantPlate() {
+  const g = new THREE.Group(), cer = new THREE.MeshPhysicalMaterial({ color: 0xf6f3ec, roughness: 0.2, clearcoat: 0.8 });
+  const plate = new THREE.Mesh(new THREE.LatheGeometry([[0, 0], [6, 0], [8.2, 0.8], [8.8, 1.1], [8.5, 1.2], [6.2, 0.45], [0, 0.5]].map(([r, y]) => new THREE.Vector2(r, y)), 48), cer);
+  plate.castShadow = plate.receiveShadow = true; g.add(plate);
+  const crust = new THREE.MeshPhysicalMaterial({ color: 0xc7832f, roughness: 0.45, clearcoat: 0.5, clearcoatRoughness: 0.4 });
+  const N = 9;
+  for (let i = 0; i < N; i++) {
+    const f = i / (N - 1), a = lerpA(-1.15, 1.15, f), R = 4.2, w = 0.55 + Math.sin(f * Math.PI) * 1.25;
+    const m = new THREE.Mesh(new THREE.SphereGeometry(1, 20, 14), crust);
+    m.scale.set(w * 0.95, w * 0.78, w * 1.15); m.position.set(Math.sin(a) * R, 0.6 + w * 0.7, -Math.cos(a) * R + 3.2); m.rotation.y = -a;
+    m.castShadow = true; g.add(m);
+  }
+  return g;
+}
+const lerpA = (a, b, t) => a + (b - a) * t;

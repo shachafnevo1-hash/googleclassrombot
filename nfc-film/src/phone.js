@@ -95,17 +95,26 @@ export function statusBar(x, Wc, dark, time = true) {
   U.rr(x, 694, 60, 38, 16, 4); x.fill(); U.rr(x, 742, 63, 4, 10, 2); x.globalAlpha *= 0.45; x.fill(); x.globalAlpha /= 0.45;
 }
 
-// Google review page for Café Limon. stars: 0..5 (fractional = popping), typed: 0..1, posted: 0..1
-export function drawReview(phone, { stars = 0, typed = 0, posted = 0, glow = 0 } = {}) {
-  const x = phone.canvas.getContext('2d'), k = phone.canvas.width / 820, Wc = 820, Hc = phone.canvas.height / k;
-  x.save(); x.setTransform(k, 0, 0, k, 0, 0); x.fillStyle = '#ffffff'; x.fillRect(0, 0, Wc, Hc);
+// ── screens (logical 820-wide space; the canvas has the real display ratio) ──
+const BIZ = { name: 'קפה הפוך על הפוך', sub: 'בית קפה · תל אביב', avatar: '#B07A4E', letter: 'ק' };
+export function pageLock(x, Wc, Hc, { wake = 1 } = {}) {
+  const g = x.createLinearGradient(0, 0, 0, Hc); g.addColorStop(0, '#1d2b4f'); g.addColorStop(0.6, '#2c2346'); g.addColorStop(1, '#141019');
+  x.fillStyle = g; x.fillRect(0, 0, Wc, Hc);
+  const r = x.createRadialGradient(Wc * 0.7, Hc * 0.35, 0, Wc * 0.7, Hc * 0.35, Wc); r.addColorStop(0, 'rgba(90,162,255,0.35)'); r.addColorStop(1, 'rgba(90,162,255,0)'); x.fillStyle = r; x.fillRect(0, 0, Wc, Hc);
+  statusBar(x, Wc, false, false);
+  U.text(x, 'יום שלישי, 3 בנובמבר', Wc / 2, 268, he({ size: 40, weight: 500, color: 'rgba(255,255,255,0.85)' }));
+  U.text(x, '9:41', Wc / 2, 478, { size: 210, weight: 600, color: '#ffffff', align: 'center', ls: -4, family: 'Inter' });
+  if (wake < 1) { x.fillStyle = `rgba(0,0,0,${1 - wake})`; x.fillRect(0, 0, Wc, Hc); }
+}
+export function pageReview(x, Wc, Hc, { stars = 0, typed = 0 } = {}) {
+  x.fillStyle = '#ffffff'; x.fillRect(0, 0, Wc, Hc);
   statusBar(x, Wc, true);
   const Y = 66;
   x.strokeStyle = '#5f6368'; x.lineWidth = 5; x.lineCap = 'round';
   x.beginPath(); x.moveTo(58, 148 + Y); x.lineTo(92, 182 + Y); x.moveTo(92, 148 + Y); x.lineTo(58, 182 + Y); x.stroke();
-  U.avatar(x, 740, 168 + Y, 44, '#F4D35E', 'ק', '#5f4b00');
-  U.text(x, 'קפה לימון', 676, 160 + Y, he({ size: 52, weight: 700, color: '#202124', align: 'right' }));
-  U.text(x, 'בית קפה · כפר סבא', 676, 210 + Y, he({ size: 32, weight: 400, color: '#5f6368', align: 'right' }));
+  U.avatar(x, 740, 168 + Y, 44, BIZ.avatar, BIZ.letter, '#ffffff');
+  U.text(x, BIZ.name, 676, 160 + Y, he({ size: 50, weight: 700, color: '#202124', align: 'right' }));
+  U.text(x, BIZ.sub, 676, 210 + Y, he({ size: 32, weight: 400, color: '#5f6368', align: 'right' }));
   x.fillStyle = '#e8eaed'; x.fillRect(40, 262 + Y, Wc - 80, 2);
   U.avatar(x, 740, 336 + Y, 36, '#1A73E8', 'ד');
   U.text(x, 'דנה לוי', 684, 328 + Y, he({ size: 38, weight: 600, color: '#202124', align: 'right' }));
@@ -113,25 +122,61 @@ export function drawReview(phone, { stars = 0, typed = 0, posted = 0, glow = 0 }
   for (let i = 0; i < 5; i++) {
     const f = clamp(stars - i), pu = E.bump(clamp((stars - i) * 1.4));
     const sx = Wc / 2 + (2 - i) * 138, sy = 560 + Y, Rr = 58 * (1 + 0.18 * pu);
-    if (f > 0.05) { const gg = x.createRadialGradient(sx, sy, 0, sx, sy, 120); gg.addColorStop(0, `rgba(251,188,4,${0.32 * f + glow * 0.2})`); gg.addColorStop(1, 'rgba(251,188,4,0)'); x.fillStyle = gg; x.fillRect(sx - 120, sy - 120, 240, 240); }
+    if (f > 0.05) { const gg = x.createRadialGradient(sx, sy, 0, sx, sy, 120); gg.addColorStop(0, `rgba(251,188,4,${0.32 * f})`); gg.addColorStop(1, 'rgba(251,188,4,0)'); x.fillStyle = gg; x.fillRect(sx - 120, sy - 120, 240, 240); }
     U.star(x, sx, sy, Rr, f, '#FBBC04', '#9AA0A6', 5);
   }
-  if (stars >= 4.99) U.text(x, 'מעולה!', Wc / 2, 682 + Y, he({ size: 40, weight: 600, color: '#202124' }));
+  const ex = clamp((stars - 4.6) * 2.5);
+  if (ex > 0) U.text(x, 'מעולה!', Wc / 2, 682 + Y, he({ size: 40, weight: 600, color: '#202124', alpha: ex }));
   U.rr(x, 50, 744 + Y, Wc - 100, 300, 26); x.strokeStyle = '#dadce0'; x.lineWidth = 3; x.stroke();
   const full = 'קפה מעולה ושירות מהיר!', n = Math.floor(full.length * clamp(typed));
   if (n === 0) U.text(x, 'שתפו פרטים על החוויה שלכם', Wc - 90, 834 + Y, he({ size: 34, weight: 400, color: '#9aa0a6', align: 'right' }));
   else U.text(x, full.slice(0, n), Wc - 90, 834 + Y, he({ size: 38, weight: 400, color: '#202124', align: 'right' }));
   U.rr(x, 50, Hc - 236, Wc - 100, 112, 56); x.fillStyle = '#1A73E8'; x.fill();
   U.text(x, 'פרסום', Wc / 2, Hc - 164, he({ size: 46, weight: 700, color: '#ffffff' }));
-  if (posted > 0) {
-    x.save(); x.globalAlpha = posted; x.fillStyle = '#ffffff'; x.fillRect(0, 0, Wc, Hc); statusBar(x, Wc, true);
-    x.translate(Wc / 2, 780); const sc = 0.7 + 0.3 * E.arrive(posted); x.scale(sc, sc);
-    x.beginPath(); x.arc(0, 0, 120, 0, Math.PI * 2); x.fillStyle = '#1e8e3e'; x.fill();
-    x.strokeStyle = '#fff'; x.lineWidth = 22; x.lineCap = 'round'; x.lineJoin = 'round';
-    x.beginPath(); x.moveTo(-52, 4); x.lineTo(-14, 44); x.lineTo(56, -38); x.stroke(); x.restore();
-    U.text(x, 'הביקורת פורסמה', Wc / 2, 1010, he({ size: 58, weight: 700, color: '#202124', alpha: posted }));
-  }
+}
+const REVS = [['יוסי ב.', 'י', '#A142F4', 'הקרואסון הכי טוב בעיר', 5], ['מאיה ש.', 'מ', '#E8710A', 'אווירה מהממת וצוות מקסים', 5], ['רון ג.', 'ר', '#1E8E3E', 'הפוך מושלם, חוזר כל בוקר', 5], ['נועה כ.', 'נ', '#D93025', 'שירות מהיר ומחייך', 5]];
+function reviewCard(x, Wc, y, [name, ini, col, txt, st], hl = 0, when = 'לפני שבוע') {
+  if (hl > 0) { U.rr(x, 24, y - 18, Wc - 48, 190, 22); x.fillStyle = `rgba(26,115,232,${0.1 * hl})`; x.fill(); }
+  U.avatar(x, 744, y + 30, 34, col, ini);
+  U.text(x, name, 690, y + 26, he({ size: 34, weight: 600, color: '#202124', align: 'right' }));
+  U.text(x, when, 690, y + 64, he({ size: 26, weight: 400, color: '#5f6368', align: 'right' }));
+  for (let k = 0; k < 5; k++) U.star(x, 760 - k * 34, y + 104, 14, clamp(st - k), '#FBBC04', '#DADCE0', 2);
+  U.text(x, txt, 776, y + 152, he({ size: 32, weight: 400, color: '#3c4043', align: 'right' }));
+}
+export function pageProfile(x, Wc, Hc, { rating = 3.2, count = 38, fresh = 0 } = {}) {
+  x.fillStyle = '#ffffff'; x.fillRect(0, 0, Wc, Hc);
+  // header photo: latte art, top view, warm bokeh
+  const g = x.createLinearGradient(0, 0, 0, 420); g.addColorStop(0, '#3b2416'); g.addColorStop(1, '#6b4429'); x.fillStyle = g; x.fillRect(0, 0, Wc, 420);
+  for (const [bx, by, br, a] of [[90, 90, 70, 0.25], [700, 70, 90, 0.2], [620, 330, 60, 0.18], [160, 340, 50, 0.2]]) { const r = x.createRadialGradient(bx, by, 0, bx, by, br); r.addColorStop(0, `rgba(255,200,130,${a})`); r.addColorStop(1, 'rgba(255,200,130,0)'); x.fillStyle = r; x.fillRect(bx - br, by - br, br * 2, br * 2); }
+  x.beginPath(); x.arc(Wc / 2, 225, 150, 0, Math.PI * 2); x.fillStyle = '#f4efe8'; x.fill();
+  x.beginPath(); x.arc(Wc / 2, 225, 122, 0, Math.PI * 2); x.fillStyle = '#b07a4e'; x.fill();
+  x.fillStyle = '#f6eadb'; x.beginPath(); x.moveTo(Wc / 2, 300); x.bezierCurveTo(Wc / 2 - 110, 220, Wc / 2 - 70, 140, Wc / 2, 190); x.bezierCurveTo(Wc / 2 + 70, 140, Wc / 2 + 110, 220, Wc / 2, 300); x.fill();
+  statusBar(x, Wc, false);
+  U.text(x, BIZ.name, 776, 500, he({ size: 54, weight: 700, color: '#202124', align: 'right' }));
+  U.text(x, rating.toFixed(1), 776, 566, { size: 38, weight: 600, color: '#202124', align: 'right', family: 'Inter' });
+  for (let k = 0; k < 5; k++) U.star(x, 690 - k * 40, 553, 17, clamp(rating - k), '#FBBC04', '#DADCE0', 2.2);
+  U.text(x, `(${Math.round(count)})`, 476, 566, { size: 32, weight: 500, color: '#70757A', align: 'right', family: 'Inter' });
+  U.text(x, 'בית קפה · ₪₪ · ', 776, 622, he({ size: 30, weight: 400, color: '#5f6368', align: 'right' }));
+  U.text(x, 'פתוח עכשיו', 776 - U.measure(x, 'בית קפה · ₪₪ · ', he({ size: 30 })), 622, he({ size: 30, weight: 500, color: '#188038', align: 'right' }));
+  [['מסלול', true], ['התקשרות', false], ['שמירה', false]].forEach(([lb, fill], i) => {
+    const bx = 776 - i * 236 - 216; U.rr(x, bx, 662, 216, 78, 39);
+    if (fill) { x.fillStyle = '#1A73E8'; x.fill(); } else { x.strokeStyle = '#dadce0'; x.lineWidth = 3; x.stroke(); }
+    U.text(x, lb, bx + 108, 713, he({ size: 30, weight: 600, color: fill ? '#ffffff' : '#1A73E8' }));
+  });
+  x.fillStyle = '#e8eaed'; x.fillRect(0, 790, Wc, 2);
+  U.text(x, 'ביקורות', 776, 862, he({ size: 40, weight: 700, color: '#202124', align: 'right' }));
+  // the fresh 5-star review drops in at the top and pushes the others down
+  const f = E.out(clamp(fresh)), y0 = 910;
+  REVS.forEach((r, i) => reviewCard(x, Wc, y0 + (i + f) * 214, r));
+  if (f > 0) { x.save(); x.globalAlpha = f; reviewCard(x, Wc, y0 - (1 - f) * 120, ['דנה לוי', 'ד', '#1A73E8', 'קפה מעולה ושירות מהיר!', 5], 1 - clamp(fresh - 1), 'עכשיו'); x.restore(); }
+}
+// compose pages (each with a vertical offset in logical px) + Dynamic Island + home bar
+export function drawPhone(phone, pages) {
+  const x = phone.canvas.getContext('2d'), k = phone.canvas.width / 820, Wc = 820, Hc = phone.canvas.height / k;
+  x.save(); x.setTransform(k, 0, 0, k, 0, 0); x.fillStyle = '#000'; x.fillRect(0, 0, Wc, Hc);
+  for (const [fn, o, dy = 0] of pages) { if (dy >= Hc || dy <= -Hc) continue; x.save(); x.translate(0, dy); x.beginPath(); x.rect(0, 0, Wc, Hc); x.clip(); fn(x, Wc, Hc, o); x.restore(); }
   U.rr(x, Wc / 2 - 131, 23, 262, 77, 38.5); x.fillStyle = '#000'; x.fill();
   U.rr(x, Wc / 2 - 140, Hc - 26, 280, 10, 5); x.fillStyle = 'rgba(17,17,17,0.82)'; x.fill();
   x.restore(); phone.tex.needsUpdate = true;
 }
+export function drawReview(phone, o) { drawPhone(phone, [[pageReview, o]]); }
