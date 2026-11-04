@@ -231,6 +231,7 @@
     whoosh(CUES.cafeDoor - 0.25, 0.4, 600, 2600, 0.04);        // through the café door
     chime(CUES.tap + 0.005, 88, 0.12, -0.1); chime(CUES.tap + 0.1, 95, 0.1, 0.1); haptic(CUES.tap + 0.02, 0.18);
     [79, 83, 86, 91, 95].forEach((m, i) => sparkle(CUES.stars[i], m, 0.11, -0.4 + i * 0.2));
+    if (CUES.post) softClick(CUES.post, 0.1, 2200);                      // Post pressed
     chime(CUES.posted, 91, 0.08);
     whoosh(CUES.up, 0.6, 500, 3500, 0.05);                     // zoom out
     CUES.arrivals.forEach((a, i) => pop(a, 84 + (i % 4) * 2, 0.07));

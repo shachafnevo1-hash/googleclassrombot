@@ -212,21 +212,24 @@ export function buildCity(opts = {}) {
 
   // hero street buildings (west block = generic shops, east block = our two stores)
   const stores = opts.stores || [];
-  const signs = { 0: ['פרחים', '#ffffff', '#c2185b', 0xd77fa1], 2: ['ספרים', '#fffaf0', '#5d4037', 0x8d6e63], 3: ['אופטיקה', '#ffffff', '#1e3a5f', 0x5b7db1], 5: ['פיצה', '#fff8e1', '#c62828', 0xd35400] };
+  const signs = {};
   for (const hm of heroMeshes) {
     const st = stores.find((s) => s.slot === hm.slot);
-    const pastel = C.pastel[(hm.slot * 3 + 1) % C.pastel.length];
+    const pastel = C.bld[(hm.slot * 5 + 2) % C.bld.length];
     const mat = buildingMaterial(false); mat.color.setHex(st ? st.color : pastel);
     const upper = new THREE.Mesh(box, mat); upper.scale.set(hm.w - 0.2, hm.h - 3.6, hm.d); upper.position.set(hm.x, 3.78, hm.z);
     upper.castShadow = upper.receiveShadow = true; g.add(upper);
     const base = new THREE.Mesh(box, flat(st ? st.color : pastel)); base.scale.set(hm.w - 0.2, 3.6, hm.d); base.position.set(hm.x, 0.18, hm.z);
     base.castShadow = base.receiveShadow = true; g.add(base);
     const fz = hm.front + 0.02;
-    const glass = new THREE.Mesh(new THREE.PlaneGeometry(hm.w - 2.4, 2.3), new THREE.MeshStandardMaterial({ color: 0x5f6f84, roughness: 0.15, metalness: 0.15, emissive: 0xffd7a0, emissiveIntensity: st ? 0.22 : 0.12 }));
+    const glass = new THREE.Mesh(new THREE.PlaneGeometry(hm.w - 2.4, 2.3), new THREE.MeshStandardMaterial({ color: st ? 0x5f6f84 : 0x8a95a3, roughness: 0.15, metalness: 0.15, emissive: 0xffd7a0, emissiveIntensity: st ? 0.24 : 0.0 }));
     glass.position.set(hm.x, 1.55, fz); g.add(glass);
     const sg = signs[hm.slot];
-    const awCol = st ? st.awning : sg ? sg[3] : [0xb0bec5, 0x9fb7a8, 0xc7a89a][hm.slot % 3];
-    const awn = new THREE.Mesh(new THREE.BoxGeometry(hm.w - 1.2, 0.2, 1.6), flat(awCol)); awn.position.set(hm.x, 3.0, fz + 0.8); awn.castShadow = true; g.add(awn);
+    if (st) {
+      const awn = new THREE.Mesh(new THREE.BoxGeometry(hm.w - 1.2, 0.2, 1.6), flat(st.awning)); awn.position.set(hm.x, 3.0, fz + 0.8); awn.castShadow = true; g.add(awn);
+    } else {
+      const lintel = new THREE.Mesh(new THREE.BoxGeometry(hm.w - 1.6, 0.18, 0.5), flat(0xd7dbe1)); lintel.position.set(hm.x, 2.95, fz + 0.25); lintel.castShadow = true; g.add(lintel);
+    }
     const label = st ? [st.name, st.signBg, st.signFg] : sg;
     if (label) {
       const sw = hm.w - 1.6;
