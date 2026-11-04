@@ -1,5 +1,6 @@
 // Key-frame stills for the reel concept (opening, entering the café, review wall).
 import { THREE, W, H, buildStreet, buildCafe, buildStand, buildDot, lights } from './world.js';
+import { buildCity, routeGeometry, HERO } from './city.js';
 
 const F = '../nfc-stand-video/fonts/';
 const HEB = 'U+0307-0308, U+0590-05FF, U+200C-2010, U+20AA, U+25CC, U+FB1D-FB4F';
@@ -56,6 +57,20 @@ function caption(text, y, sub) {
   if (sub) U.text(ctx, sub, W / 2, y + 90, he({ size: 36, weight: 500, color: '#3C4043' }));
 }
 
+// Google-Maps navigation header (green), RTL
+function navCard(dist, to) {
+  ctx.save();
+  ctx.shadowColor = 'rgba(0,0,0,0.25)'; ctx.shadowBlur = 30; ctx.shadowOffsetY = 8;
+  U.rr(ctx, 40, 70, W - 80, 170, 34); ctx.fillStyle = '#137333'; ctx.fill();
+  ctx.restore();
+  // straight-ahead arrow on the right
+  ctx.save(); ctx.translate(W - 130, 155); ctx.fillStyle = '#fff';
+  ctx.beginPath(); ctx.moveTo(0, -46); ctx.lineTo(34, -6); ctx.lineTo(12, -6); ctx.lineTo(12, 44); ctx.lineTo(-12, 44); ctx.lineTo(-12, -6); ctx.lineTo(-34, -6); ctx.closePath(); ctx.fill();
+  ctx.restore();
+  U.text(ctx, dist, W - 210, 140, he({ size: 60, weight: 700, color: '#fff', align: 'right' }));
+  U.text(ctx, 'לכיוון ' + to, W - 210, 205, he({ size: 40, weight: 500, color: 'rgba(255,255,255,0.92)', align: 'right' }));
+}
+
 const STORES = [
   { slot: 4, name: 'מאפיית בוקר', color: 0xf6dcc2, awning: 0xc96f4a, signBg: '#fff7ee', signFg: '#a0522d' },
   { slot: 7, name: 'קפה לימון', color: 0xfbe7a6, awning: 0x2f9e6a, signBg: '#ffffff', signFg: '#2f7d55' },
@@ -86,7 +101,27 @@ async function main() {
   key.shadow.mapSize.set(2048, 2048); Object.assign(key.shadow.camera, { left: -7, right: 7, top: 7, bottom: -7 }); key.shadow.radius = 5; cafe.add(key);
   const cafeDot = buildDot(0.28); cafe.add(cafeDot);
 
-  const cam = new THREE.PerspectiveCamera(38, W / H, 0.05, 600);
+  // ── full city
+  const CITY_STORES = [
+    { id: 'bakery', slot: 1, name: 'מאפיית בוקר', color: 0xf6dcc2, awning: 0xc96f4a, signBg: '#fff7ee', signFg: '#a0522d' },
+    { id: 'cafe', slot: 4, name: 'קפה לימון', color: 0xfbe7a6, awning: 0x2f9e6a, signBg: '#ffffff', signFg: '#2f7d55' },
+  ];
+  const city = new THREE.Scene(); city.background = new THREE.Color(0xe8edf3);
+  city.fog = new THREE.Fog(0xe8edf3, 320, 720);
+  const cityG = buildCity({ stores: CITY_STORES }); city.add(cityG);
+  const cm = cityG.userData;
+  city.add(new THREE.HemisphereLight(0xffffff, 0xd9dee6, 1.25));
+  const sun2 = new THREE.DirectionalLight(0xffffff, 2.3);
+  sun2.castShadow = true; sun2.shadow.mapSize.set(4096, 4096);
+  Object.assign(sun2.shadow.camera, { left: -190, right: 190, top: 190, bottom: -190, near: 1, far: 700 });
+  sun2.shadow.bias = -0.0005; sun2.shadow.normalBias = 0.06;
+  city.add(sun2, sun2.target);
+  const cdot = buildDot(4.8); city.add(cdot);
+  const routeFill = new THREE.Mesh(new THREE.BufferGeometry(), new THREE.MeshBasicMaterial({ color: 0x4285f4, polygonOffset: true, polygonOffsetFactor: -2 }));
+  const routeEdge = new THREE.Mesh(new THREE.BufferGeometry(), new THREE.MeshBasicMaterial({ color: 0x1a5bc9, polygonOffset: true, polygonOffsetFactor: -1 }));
+  city.add(routeEdge, routeFill);
+
+  const cam = new THREE.PerspectiveCamera(38, W / H, 0.05, 900);
   const snap = () => { renderer.render(window.__scene, cam); ctx.drawImage(renderer.domElement, 0, 0, W, H); };
 
   window.shot = async (n) => {
@@ -101,6 +136,26 @@ async function main() {
       placeLabel(...proj(A.top, cam), A.name, 4.2, 31, false);
       placeLabel(...proj(B.top, cam), B.name, 4.3, 38, true);
       caption('הלקוחות שלך מרוצים...', 1560);
+    } else if (n === 4) {
+      // City establishing frame: the customer (blue dot) on the hero street, the route growing ahead
+      const bak = cm.stores.bakery, caf = cm.stores.cafe;
+      const start = [-52, HERO.walkZ];
+      const pts = [start, [bak.x, HERO.walkZ], [bak.x, HERO.frontZ - 0.6]];
+      const total = Math.abs(bak.x - start[0]) + Math.abs(HERO.frontZ - 0.6 - HERO.walkZ);
+      const L = total * 0.68;
+      routeEdge.geometry = routeGeometry(pts, L, 4.2, 0.32);
+      routeFill.geometry = routeGeometry(pts, L, 3.0, 0.36);
+      cdot.position.set(start[0], 0.5, start[1]); cdot.rotation.y = Math.PI / 2;
+      cm.setTraffic(2.5);
+      const T = new THREE.Vector3(-12, 0, -22);
+      sun2.position.set(T.x - 160, 260, T.z + 190); sun2.target.position.copy(T); sun2.target.updateMatrixWorld();
+      sun2.shadow.camera.updateProjectionMatrix();
+      cam.fov = 40; cam.updateProjectionMatrix();
+      cam.position.set(T.x + 66, 216, T.z + 184); cam.lookAt(T);
+      window.__scene = city; snap();
+      placeLabel(...proj(bak.top, cam), 'מאפיית בוקר', 3.2, 31, false);
+      placeLabel(...proj(caf.top, cam), 'קפה לימון', 2.7, 38, true);
+      navCard('50 מ׳', 'מאפיית בוקר');
     } else if (n === 2) {
       // Entering the café: from just behind the blue dot, the stand on the counter ahead
       cafeDot.scale.setScalar(0.17); cafeDot.position.set(0.8, 0.02, -0.55); cafeDot.rotation.y = Math.PI;
