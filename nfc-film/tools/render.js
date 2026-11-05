@@ -65,21 +65,29 @@ const write = async (s, b) => { if (!s.write(b)) await new Promise((r) => s.once
       const wav = path.join(tmp, 'audio.wav');
       fs.writeFileSync(wav, Buffer.from(await p0.evaluate(() => window.Soundtrack.wavBase64()), 'base64'));
       await p0.close();
-      const first = +opt('from', 0), last = +opt('to', FRAMES), total = last - first, per = Math.ceil(total / workers);
-      const t0 = Date.now(); let done = 0; const segs = [];
-      await Promise.all([...Array(workers)].map(async (_, w) => {
-        const a = first + w * per, b = Math.min(last, a + per);
-        if (a >= b) return;
-        const seg = path.join(tmp, `seg_${w}.mp4`); segs[w] = seg;
+      // resumable: fixed-size chunks, each its own segment (written as .part then renamed);
+      // chunks that already exist are skipped, so a restart only loses work in progress
+      const first = +opt('from', 0), last = +opt('to', FRAMES), total = last - first, chunk = +opt('chunk', 15);
+      const chunks = []; for (let a = first; a < last; a += chunk) chunks.push([a, Math.min(last, a + chunk)]);
+      const segPath = ([a, b]) => path.join(tmp, `seg_${String(a).padStart(4, '0')}_${String(b).padStart(4, '0')}.mp4`);
+      const todo = chunks.filter((c) => !fs.existsSync(segPath(c)));
+      const left = todo.reduce((n, [a, b]) => n + b - a, 0);
+      console.log(`${chunks.length - todo.length}/${chunks.length} chunks already rendered; ${left} frames to go`);
+      const t0 = Date.now(); let done = 0; const segs = chunks.map(segPath);
+      await Promise.all([...Array(Math.min(workers, todo.length))].map(async () => {
         const page = await openPage(browser, port);
-        const ff = ffmpeg(['-y', '-loglevel', 'error', '-f', 'image2pipe', '-framerate', String(FPS), '-c:v', 'png', '-i', '-',
-          '-c:v', 'libx264', '-preset', 'slow', '-crf', '14', '-pix_fmt', 'yuv420p', '-profile:v', 'high',
-          '-x264-params', `keyint=${FPS}:min-keyint=${FPS}:scenecut=0`, '-r', String(FPS), seg]);
-        for (let f = a; f < b; f++) {
-          await write(ff.p.stdin, decode(await page.evaluate(({ f, s }) => window.renderFrame(f, { samples: s }), { f, s: samples })));
-          if (++done % 15 === 0) { const el = (Date.now() - t0) / 1000; console.log(`${done}/${total} frames  ${el.toFixed(0)}s  ~${((el / done) * (total - done)).toFixed(0)}s left`); }
+        while (todo.length) {
+          const [a, b] = todo.shift(), seg = segPath([a, b]), part = seg.replace(/\.mp4$/, '.part.mp4');
+          const ff = ffmpeg(['-y', '-loglevel', 'error', '-f', 'image2pipe', '-framerate', String(FPS), '-c:v', 'png', '-i', '-',
+            '-c:v', 'libx264', '-preset', 'slow', '-crf', '14', '-pix_fmt', 'yuv420p', '-profile:v', 'high',
+            '-x264-params', `keyint=${FPS}:min-keyint=${FPS}:scenecut=0`, '-r', String(FPS), part]);
+          for (let f = a; f < b; f++) {
+            await write(ff.p.stdin, decode(await page.evaluate(({ f, s }) => window.renderFrame(f, { samples: s }), { f, s: samples })));
+            if (++done % 15 === 0) { const el = (Date.now() - t0) / 1000; console.log(`${done}/${left} frames  ${el.toFixed(0)}s  ~${((el / done) * (left - done)).toFixed(0)}s left`); }
+          }
+          ff.p.stdin.end(); await ff.done; fs.renameSync(part, seg);
         }
-        ff.p.stdin.end(); await ff.done; await page.close();
+        await page.close();
       }));
       const list = path.join(tmp, 'list.txt');
       fs.writeFileSync(list, segs.filter(Boolean).map((s) => `file '${s}'`).join('\n'));
