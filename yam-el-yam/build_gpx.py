@@ -9,7 +9,7 @@ Steps:
   3. Add elevations from the Israel Hiking Map API (200 points per request).
   4. Cut the track at the water points (km 0, 8.0, 19.9, 29.6, 38.9, 43.2,
      49.8, 62.1, end) into 8 colored <trk> elements that Mapeak can show.
-  5. Add <wpt> for the water points and the critical points.
+  5. Add a <wpt> for each water refill point, and nothing else.
 
 Outputs (in --out):
   yam-el-yam-color-segments.gpx    8 colored tracks + waypoints (load this one into Mapeak)
@@ -66,51 +66,20 @@ SEGMENTS = [
      "בכנרת: חזירי בר בשביל הבמבוק וכלבים משוטטים."),
 ]
 
-# Water points: plan km, name, lat, lon, reliability, description.
-# Reliability: "✓✓" several sources, "✓" report from Aug 2026, "?" only on the map.
-WATER = [
-    (0.0, 'יד לי"ד', 33.0507888, 35.1033871, "✓",
-     "התחלה. הברז היה תקול במרץ 2025 – לא לסמוך עליו: יוצאים עם 3 ל' מהבית."),
-    (8.0, "עין חרדלית", 33.04234, 35.1783894, "✓",
-     "על השביל. להשלים ל-3 ל'. עצירה 10 דק' (~19:40). לא שותים ממי נחל כזיב (הנחיית רט\"ג)."),
-    (12.8, "פארק גורן", 33.0476962, 35.221841, "?",
-     "רק במפה. 250 מ' בעלייה. חירום בלבד."),
-    (18.0, "עין זיו", 33.0379679, 35.2701392, "✓",
-     "סטייה של ~430 מ'. רק אם נשאר פחות מ-1 ל'."),
-    (19.9, "חניון אבירים", 33.0428189, 35.2868911, "✓✓",
-     "300 מ' מהחיבור לכביש 8925 לכיוון אבירים, משמאל. 2 ל'. "
-     "עצירה 25 דק' (~23:45): אוכל, גרביים. שער 1: להגיע עד 01:00."),
-    (29.6, "גשר אלקוש", 33.0222440, 35.3288989, "✓✓",
-     "תחנת דלק (חורפיש) + מכולת מנטה, 24/7, ~300 מ'. 2 ל'. עצירה 10 דק' (~02:30): קפה."),
-    (38.9, "חורבת חממה", 33.0090773, 35.3936043, "✓✓",
-     "על השביל. 1.5 ל'. גיבוי: בי\"ס שדה מירון 300 מ'. "
-     "עצירה 25 דק' (~05:15): ארוחה, גרביים, קפה."),
-    (43.2, "חניון פסגת מירון", 32.9935301, 35.41435, "✓✓",
-     "על השביל. 1.5 ל'. עצירה 10 דק' (~07:15). שער 2: להגיע עד 08:30."),
-    (49.8, "חניון הפיתול", 32.979093, 35.442061, "✓✓",
-     "על השביל. 3 ל' מלא. גיבוי: תחנת דלק במירון ~900 מ'. עצירה 25 דק' (~09:00). "
-     "שער 3: יוצאים עד 10:00, אחרת מסיימים בכביש 866."),
-    (52.0, "חניון שמורת נחל עמוד", 32.9736964, 35.4618467, "?",
-     "רק במפה. ~300 מ'. חירום."),
-    (62.1, "כביש 85 – ברז מקורות", 32.912308, 35.4853811, "✓✓",
-     "בצד המערבי של המתחם, מצפון לכביש. ~220 מ'. 3 ל' מלא – מים אחרונים. "
-     "עצירה 15 דק' (~13:15). שער 4: יוצאים עד 14:00, אחרת לא נכנסים לעמוד התחתון בחושך."),
-    (65.8, "ליד כחל", 32.8880369, 35.5070891, "?",
-     "רק במפה. 440 מ'. חירום."),
+# Water refill points, the only waypoints in the GPX (one at the start of each segment
+# after the first): plan km, name, lat, lon, what to know there.
+REFILL = [
+    (8.0, "עין חרדלית", 33.04234, 35.1783894, "ברז על השביל. ממלאים ל-3 ל'."),
+    (19.9, "חניון אבירים", 33.0428189, 35.2868911,
+     "ברז בחניון הלילה, 300 מ' מהחיבור לכביש 8925 לכיוון אבירים, משמאל. 2 ל'."),
+    (29.6, "גשר אלקוש", 33.0222440, 35.3288989,
+     "תחנת הדלק (חורפיש) ומכולת מנטה, פתוחות 24/7, כ-300 מ' מהשביל. 2 ל'."),
+    (38.9, "חורבת חממה", 33.0090773, 35.3936043, "ברז על השביל. 1.5 ל'. גיבוי: בי\"ס שדה מירון, 300 מ'."),
+    (43.2, "חניון פסגת מירון", 32.9935301, 35.41435, "ברז על השביל. 1.5 ל'."),
+    (49.8, "חניון הפיתול", 32.979093, 35.442061, "ברז על השביל. 3 ל' מלא. גיבוי: תחנת דלק במירון, כ-900 מ'."),
+    (62.1, "כביש 85 – ברז מקורות", 32.912308, 35.4853811,
+     "בצד המערבי של המתחם, מצפון לכביש, כ-220 מ' מהשביל. 3 ל' מלא – מים אחרונים."),
 ]
-
-# Critical points placed on the route by km: km, name, description, kind, short map label.
-ROUTE_POINTS = [
-    (13.1, "מתחת למונפור", "לא עולים למבצר. אם הנחל גבוה, הולכים בדרך העפר שבגדה.", "warn", "מונפור"),
-    (16.0, "עין טמיר – פנייה לאבירים",
-     "מכאן עולים לאבירים – קל לפספס את הפנייה. עצירה 15 דק' (~22:00).", "warn", "עין טמיר"),
-    (53.8, "בריכות שכווי", "מכאן קטעי יתדות וסלע. לאט ובזוג. עצירה 10 דק' (~10:35).", "warn",
-     "בריכות שכווי"),
-    (67.5, "עין עמוד", "עצירה 10 דק' (~14:55).", "stop", "עין עמוד"),
-]
-
-END_DESC = ("סוף המסלול (~16:05). מים: ברזיות בחוף חוקוק ~1 ק\"מ צפונה, ותחנת דלק דור אלון ליד כביש 90. "
-            "בכנרת: חזירי בר בשביל הבמבוק וכלבים משוטטים.")
 
 # Plan: km, arrival (clock), stop minutes, name. Used for the preview and for the
 # km at sunrise. Arrival times after midnight belong to the next day.
@@ -417,28 +386,21 @@ def render_png(path, segs, wpts, pts, cum, sched, sunrise_km, ascent):
         ax.scatter([mid[1]], [mid[0]], s=330, color=s["color"], edgecolor="white", linewidth=1.5, zorder=6)
         ax.text(mid[1], mid[0], str(s["n"]), color="white", ha="center", va="center", fontsize=10,
                 weight="bold", zorder=7)
-    for w in wpts:
-        if w["type"] == "מים":
-            hollow = w["rel"] == "?"
-            ax.scatter([w["lon"]], [w["lat"]], s=42, marker="o", zorder=8,
-                       facecolor="white" if hollow else "#1f78d1", edgecolor="#1f78d1", linewidth=1.4)
-        elif w["type"] == "זהירות":
-            ax.scatter([w["lon"]], [w["lat"]], s=60, marker="^", color="#ff8c00", edgecolor="black",
-                       linewidth=0.6, zorder=8)
-            dx, dy, ha = (9, -1, "left") if w["short"] == "בריכות שכווי" else (0, -13, "center")
-            ax.annotate(H(w["short"]), (w["lon"], w["lat"]), xytext=(dx, dy), textcoords="offset points",
-                        ha=ha, va="center", fontsize=7.5, color="#8a4b00", zorder=8)
-    # boundary labels: name + planned arrival
+    # start, the refill points (at the tap itself) and the end, each with its planned arrival
     label_pos = {0: (0, 14), 1: (0, -18), 2: (0, 14), 3: (0, -18), 4: (-45, 16), 5: (58, 12), 6: (0, 16),
                  7: (0, 14), 8: (0, -18)}
     bounds = [s["s0"] for s in segs] + [segs[-1]["s1"]]
     names = [s["from_full"] for s in segs] + ["הכנרת"]
     times = [s["time"].split("–")[0] for s in segs] + [segs[-1]["time"].split("–")[1]]
     for j, (b, nm, tm) in enumerate(zip(bounds, names, times)):
-        p = point_at(pts, cum, b)
-        ax.scatter([p[1]], [p[0]], s=70, color="white", edgecolor="#222", linewidth=1.6, zorder=9)
+        if 0 < j < len(bounds) - 1:
+            lat, lon = wpts[j - 1]["lat"], wpts[j - 1]["lon"]
+            ax.scatter([lon], [lat], s=80, color="#1f78d1", edgecolor="white", linewidth=1.4, zorder=9)
+        else:
+            lat, lon, _ = point_at(pts, cum, b)
+            ax.scatter([lon], [lat], s=70, color="white", edgecolor="#222", linewidth=1.6, zorder=9)
         dx, dy = label_pos[j]
-        ax.annotate(H(f"{nm} {tm}"), (p[1], p[0]), xytext=(dx, dy), textcoords="offset points",
+        ax.annotate(H(f"{nm} {tm}"), (lon, lat), xytext=(dx, dy), textcoords="offset points",
                     ha="center", va="center", fontsize=9, zorder=10,
                     bbox=dict(boxstyle="round,pad=0.25", fc="white", ec="#bbb", lw=0.6, alpha=0.9))
     ax.set_aspect(1 / math.cos(math.radians(lat0)))
@@ -463,13 +425,10 @@ def render_png(path, segs, wpts, pts, cum, sched, sunrise_km, ascent):
     leg1 = ax.legend(seg_handles, seg_labels, loc="lower left", fontsize=8.6, frameon=True, framealpha=0.95,
                      markerfirst=False, title=H("מקטעים (צבעים כמו ב-Mapeak)"), title_fontsize=9.5)
     ax.add_artist(leg1)
-    mk = [Line2D([], [], marker="o", ls="", markerfacecolor="#1f78d1", markeredgecolor="#1f78d1", markersize=7),
-          Line2D([], [], marker="o", ls="", markerfacecolor="white", markeredgecolor="#1f78d1", markersize=7,
-                 markeredgewidth=1.4),
-          Line2D([], [], marker="^", ls="", color="#ff8c00", markeredgecolor="black", markersize=8),
+    mk = [Line2D([], [], marker="o", ls="", markerfacecolor="#1f78d1", markeredgecolor="white", markersize=8),
           Line2D([], [], marker="o", ls="", markerfacecolor="white", markeredgecolor="#222", markersize=8,
                  markeredgewidth=1.6)]
-    ax.legend(mk, [H("מים (✓ / ✓✓)"), H("מים? רק במפה – חירום"), H("נקודה קריטית"), H("גבול מקטע + שעת הגעה")],
+    ax.legend(mk, [H("מילוי מים + שעת הגעה"), H("התחלה / סיום")],
               loc="upper right", bbox_to_anchor=(1.0, 0.86), fontsize=8.6, framealpha=0.95, markerfirst=False)
 
     # ---- elevation profile
@@ -494,13 +453,6 @@ def render_png(path, segs, wpts, pts, cum, sched, sunrise_km, ascent):
         ha = "left" if j == 0 else "right" if j == len(bounds) - 1 else "center"
         ax2.text(x + {"left": 0.3, "right": -0.3, "center": 0}[ha], y, H(f"{nm}\n{tm}"), ha=ha, va="center",
                  fontsize=8, zorder=5, bbox=dict(boxstyle="round,pad=0.2", fc="white", ec="#ccc", lw=0.5, alpha=0.95))
-    for km, arr, _, nm in sched:
-        if any(abs(km - b / 1000) < 0.05 for b in bounds):
-            continue
-        p = point_at(pts, cum, km * 1000)
-        ax2.plot([km], [p[2]], marker="v", color="#555", markersize=6, zorder=6)
-        ax2.annotate(H(f"{nm} {arr:%H:%M}"), (km, p[2]), xytext=(0, 12), textcoords="offset points",
-                     ha="center", fontsize=7.5, color="#333")
     top = max(range(len(pts)), key=lambda k: pts[k][2])
     ax2.annotate(H(f"נקודה גבוהה {pts[top][2]:,.0f} מ'"), (cum[top] / 1000, pts[top][2]), xytext=(-14, 0),
                  textcoords="offset points", ha="right", va="center", fontsize=8.5, color="#000")
@@ -536,7 +488,7 @@ def main():
     path = shortest_path(nodes, ways, members, START_NODE, END_NODE)
     latlon = [nodes[n] for n in path]
 
-    wpt_coords = [(w[2], w[3]) for w in WATER] + [nodes[END_NODE]]
+    wpt_coords = [(w[2], w[3]) for w in REFILL]
     eles = elevations(latlon + wpt_coords, args.cache)
     pts = [(lat, lon, e) for (lat, lon), e in zip(latlon, eles)]
     wpt_eles = eles[len(latlon):]
@@ -562,23 +514,13 @@ def main():
 
     # ---- waypoints
     wpts = []
-    print("\nwater points: plan km | route km | off-route m")
-    for (km, name, lat, lon, rel, desc), ele in zip(WATER, wpt_eles):
+    print("\nrefill points: plan km | route km | off-route m")
+    for (km, name, lat, lon, desc), ele in zip(REFILL, wpt_eles):
         rkm, off = project(pts, cum, lat, lon)
         flag = "  <-- check" if abs(rkm - km) > 0.3 else ""
         print(f"  {name:<24} {km:5.1f} | {rkm:6.2f} | {off:5.0f}{flag}")
-        prefix = "מים?" if rel == "?" else "מים"
-        wpts.append(dict(lat=lat, lon=lon, ele=ele, rel=rel, short=name, type="מים", sym="Drinking Water",
-                         name=f'{prefix} · {name} (ק"מ {km_label(km)})',
-                         desc=f"{rel} · {desc}" + (f" [קו אווירי מהשביל: {off:.0f} מ']" if off > 50 else "")))
-    for km, name, desc, kind, short in ROUTE_POINTS:
-        lat, lon, ele = point_at(pts, cum, km * 1000)
-        wpts.append(dict(lat=lat, lon=lon, ele=ele, rel="", short=short, type="זהירות" if kind == "warn" else "עצירה",
-                         sym="Danger Area" if kind == "warn" else "Waypoint",
-                         name=f'{"זהירות" if kind == "warn" else "עצירה"} · {name} (ק"מ {km_label(km)})', desc=desc))
-    end_lat, end_lon = nodes[END_NODE]
-    wpts.append(dict(lat=end_lat, lon=end_lon, ele=wpt_eles[-1], rel="", short="הכנרת", type="סיום", sym="Flag, Red",
-                     name=f'סיום · הכנרת (ק"מ {total / 1000:.1f})', desc=END_DESC))
+        wpts.append(dict(lat=lat, lon=lon, ele=ele, type="מים", sym="Drinking Water",
+                         name=f'מים · {name} (ק"מ {km_label(km)})', desc=desc))
 
     # ---- GPX files
     lats = [p[0] for p in pts] + [w["lat"] for w in wpts]
